@@ -19,4 +19,9 @@ contract EthKidsRegistry is Ownable {
         communities[_index] = address(0);
     }
 
+    function getCommunityAt(uint256 _index) public view returns (address community) {
+        require(communities[_index] != address(0), "No such community exists");
+        return communities[_index];
+    }
+
 }

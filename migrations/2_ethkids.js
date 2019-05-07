@@ -27,6 +27,7 @@ module.exports = async function (deployer, network, accounts) {
 
     await deployer.deploy(EthKidsRegistry);
     registryInstance = await EthKidsRegistry.deployed();
+    console.log('EthKids, EthKidsRegistry: NEW ' + registryInstance.address);
 
     console.log(`  Registering community in the registry...`);
     await registryInstance.registerCommunity(donationCommunityInstance.address);

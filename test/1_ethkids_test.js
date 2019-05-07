@@ -30,7 +30,7 @@ contract('EthKids', async (accounts) => {
 
         assert.strictEqual((await registry.communityIndex.call()).toString(), "1");
 
-        community = await DonationCommunity.at(await registry.communities.call(0));
+        community = await DonationCommunity.at(await registry.getCommunityAt(0));
 
         bondingVault = await BondingVault.at(await community.bondingVault.call());
 
