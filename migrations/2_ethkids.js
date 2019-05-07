@@ -23,7 +23,7 @@ module.exports = async function (deployer, network, accounts) {
     console.log('EthKids, DonationCommunity: NEW ' + donationCommunityInstance.address);
 
     console.log(`  Transferring ownership of the bondingVault to community...`);
-    await bondingVaultInstance.transferOwnership(donationCommunityInstance.address);
+    await bondingVaultInstance.transferPrimary(donationCommunityInstance.address);
 
     await deployer.deploy(EthKidsRegistry);
     registryInstance = await EthKidsRegistry.deployed();

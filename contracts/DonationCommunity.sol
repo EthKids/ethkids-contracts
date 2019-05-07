@@ -17,6 +17,11 @@ contract DonationCommunity is SignerRole {
         address from,
         uint256 amount
     );
+    event LogTokensSold
+    (
+        address from,
+        uint256 amount
+    );
     event LogPassToCharity
     (
         address by,
@@ -61,6 +66,11 @@ contract DonationCommunity is SignerRole {
 
     function sell(uint256 _amount) public {
         bondingVault.sell(_amount, msg.sender);
+        emit LogTokensSold(msg.sender, _amount);
+    }
+
+    function sweepBondingVault() public onlySigner {
+        bondingVault.sweepVault(msg.sender);
     }
 
     function passToCharity(uint256 _amount, address payable _intermediary, string memory _ipfsHash) public onlySigner {
@@ -85,5 +95,7 @@ interface BondingVaultInterface {
     function getCommunityToken() external view returns (address);
 
     function calculateReturn(uint256 _sellAmount, address payable _donator) external view returns (uint256 _finalPrice, uint256 _redeemableEth);
+
+    function sweepVault(address payable _operator) external;
 
 }

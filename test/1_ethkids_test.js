@@ -128,12 +128,29 @@ contract('EthKids', async (accounts) => {
             intermediaryBalanceBefore);
 
         truffleAssert.eventEmitted(tx, 'LogPassToCharity', (ev) => {
-            console.log('ev.amount ' + ev.amount);
-            console.log('1eth ' + Number(web3.utils.toWei("1", "ether")));
             return ev.by === OWNER && ev.intermediary === CHARITY_INTERMEDIARY
                 && ev.amount.toString() === web3.utils.toWei("1", "ether") && ev.ipfsHash === ipfsMessage;
         }, 'LogPassToCharity should be emitted with correct parameters');
 
+    })
+
+    it("should be able to sweep the bonding curve vault", async () => {
+        //sell all
+        await community.sell(await token.balanceOf(DONATOR), {from: DONATOR});//
+        await community.sell(await token.balanceOf(DONATOR2), {from: DONATOR2});//
+
+        assert.strictEqual((await token.totalSupply()).toString(), "0");
+        console.log("Vault after all sells: " + await web3.eth.getBalance(bondingVault.address));
+
+        //bad guy can't
+        try {
+            await community.sweepBondingVault({from: DONATOR});
+            assert.ok(false, 'not authorized!');
+        } catch (error) {
+            assert.ok(true, 'expected');
+        }
+
+        await community.sweepBondingVault();
     })
 
     it("should be able to add an extra community leader", async () => {

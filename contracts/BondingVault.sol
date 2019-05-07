@@ -1,11 +1,11 @@
 pragma solidity ^0.5.2;
 
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "openzeppelin-solidity/contracts/ownership/Secondary.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "./utils/FractionalExponents.sol";
 import "./CommunityToken.sol";
 
-contract BondingVault is Ownable {
+contract BondingVault is Secondary {
     using SafeMath for uint256;
 
     uint256 public constant AWARD_RATIO = 10; //X:1 ratio (e.g. for every 1 ETH sent to charity (!!!, not here), you get X tokens)
@@ -42,12 +42,12 @@ contract BondingVault is Ownable {
         exponentContract = new FractionalExponents();
     }
 
-    function fundWithAward(address _donator) public payable onlyOwner {
+    function fundWithAward(address _donator) public payable onlyPrimary {
         communityToken.mint(_donator, msg.value.mul(AWARD_RATIO));
         emit LogEthReceived(msg.value, _donator);
     }
 
-    function sell(uint256 _amount, address payable _donator) public minimumBondingBalance onlyOwner {
+    function sell(uint256 _amount, address payable _donator) public minimumBondingBalance onlyPrimary {
         // calculate sell return
         (uint256 price, uint256 amountOfEth) = calculateReturn(_amount, _donator);
 
@@ -61,14 +61,14 @@ contract BondingVault is Ownable {
     /**
     * @dev Owner can withdraw the remaining ETH balance as long as no minted tokens left
     */
-    function sweepVault() public onlyOwner {
+    function sweepVault(address payable _operator) public onlyPrimary {
         require(communityToken.totalSupply() == 0, 'Sweep available only if no minted tokens left');
         require(address(this).balance > 0, 'Vault is empty');
-        msg.sender.transfer(address(this).balance);
-        emit LogEthSent(address(this).balance, msg.sender);
+        _operator.transfer(address(this).balance);
+        emit LogEthSent(address(this).balance, _operator);
     }
 
-    function calculateReturn(uint256 _sellAmount, address payable _donator) public minimumBondingBalance onlyOwner
+    function calculateReturn(uint256 _sellAmount, address payable _donator) public minimumBondingBalance onlyPrimary
     view returns (uint256 _finalPrice, uint256 _redeemableEth) {
         uint256 _tokenBalance = communityToken.balanceOf(_donator);
         require(_sellAmount > 0 && _tokenBalance >= _sellAmount, "Amount needs to be > 0 and tokenBalance >= amount to sell");
@@ -96,7 +96,7 @@ contract BondingVault is Ownable {
         return (_finalPrice, _redeemableEth);
     }
 
-    function getCommunityToken() public view onlyOwner returns (address) {
+    function getCommunityToken() public view onlyPrimary returns (address) {
         return address(communityToken);
     }
 
