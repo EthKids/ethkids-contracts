@@ -61,7 +61,7 @@ contract DonationCommunity is SignerRole {
     }
 
     function returnForAddress(uint256 _sellAmount, address payable _requestedAddress) public view returns (uint256 price, uint256 amountOfEth) {
-        return bondingVault.calculateReturn(_sellAmount, _requestedAddress);
+        return bondingVault.mySellPrice(_sellAmount, _requestedAddress);
     }
 
     function sell(uint256 _amount) public {
@@ -88,13 +88,15 @@ contract DonationCommunity is SignerRole {
 
 interface BondingVaultInterface {
 
-    function fundWithAward(address _donator) external payable;
+    function fundWithAward(address payable _donator) external payable;
 
     function sell(uint256 _amount, address payable _donator) external;
 
     function getCommunityToken() external view returns (address);
 
-    function calculateReturn(uint256 _sellAmount, address payable _donator) external view returns (uint256 _finalPrice, uint256 _redeemableEth);
+    function myBuyPrice(uint256 _ethAmount, address payable _donator) external view returns (uint256 _finalPrice, uint256 _tokenAmount);
+
+    function mySellPrice(uint256 _sellAmount, address payable _donator) external view returns (uint256 _finalPrice, uint256 _redeemableEth);
 
     function sweepVault(address payable _operator) external;
 

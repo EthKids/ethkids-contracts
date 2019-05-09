@@ -22,6 +22,10 @@ contract('EthKids', async (accounts) => {
     let EXTRA_OWNER = accounts[3];
     let CHARITY_INTERMEDIARY = accounts[4];
 
+    let readableETH = function (wei) {
+        return parseFloat(web3.utils.fromWei(wei.toString())).toFixed(3) + ' ETH';
+    }
+
 
     before("run initial setup ", async () => {
         console.log(`Starting EthKids...`);
@@ -44,6 +48,9 @@ contract('EthKids', async (accounts) => {
     it("should be able to donate", async () => {
         await community.donate({from: DONATOR, value: web3.utils.toWei('1', 'ether')});
 
+        console.log("(1) First donator, liquidation value ETH: " +
+            readableETH((await community.myReturn(web3.utils.toWei("100", "finney"), {from: DONATOR}))[1]));
+
         //charity fund
         let charityAfter = (await web3.eth.getBalance(charityVault.address)).toString();
         assert.strictEqual(charityAfter, web3.utils.toWei("900", "finney"));
@@ -60,11 +67,14 @@ contract('EthKids', async (accounts) => {
         assert.strictEqual(bondingCurveAfter, web3.utils.toWei("100", "finney"));
 
         //token minted
-        assert.strictEqual((await token.totalSupply()).toString(), web3.utils.toWei("1", "ether"));
+        assert.strictEqual((await token.totalSupply()).toString(), '788696680600241560'); //~0.78 CHANCE
     })
 
     it("should sum up on second donation", async () => {
         await community.donate({from: DONATOR2, value: web3.utils.toWei('2', 'ether')});
+
+        console.log("(1) First donator, liquidation value after another donator ETH: " +
+            readableETH((await community.myReturn(web3.utils.toWei("100", "finney"), {from: DONATOR}))[1]));
 
         //charity fund
         let charityAfter = (await web3.eth.getBalance(charityVault.address)).toString();
@@ -82,24 +92,27 @@ contract('EthKids', async (accounts) => {
         assert.strictEqual(bondingCurveAfter, web3.utils.toWei("300", "finney"));
 
         //token minted
-        assert.strictEqual((await token.totalSupply()).toString(), web3.utils.toWei("3", "ether"));
+        assert.strictEqual((await token.totalSupply()).toString(), '1388696680600241560'); //~1.38 CHANCE
     })
 
     it("should calculate return on sell", async () => {
-        let priceSmallDonator = (await community.myReturn(web3.utils.toWei("1", "ether"), {from: DONATOR}))[0]; //1 CHANCE
-        let priceBigDonator = (await community.myReturn(web3.utils.toWei("1", "ether"), {from: DONATOR2}))[0]; //1 CHANCE
+        let testTokenAmount = web3.utils.toWei("100", "finney");
+        let priceSmallDonator = (await community.myReturn(testTokenAmount, {from: DONATOR}))[0];
+        let priceBigDonator = (await community.myReturn(testTokenAmount, {from: DONATOR2}))[0];
 
-        console.log("priceSmallDonator: " + priceSmallDonator);
-        console.log("priceBigDonator: " + priceBigDonator);
+        console.log("(2) Donators comparison, buy/sell price for small: " + readableETH(priceSmallDonator));
+        console.log("(2) Donators comparison, buy/sell price for big: " + readableETH(priceBigDonator));
 
-        let priceSmallDonatorByOwner = (await community.returnForAddress(web3.utils.toWei("1", "ether"), DONATOR))[0];
+        let priceSmallDonatorByOwner = (await community.returnForAddress(testTokenAmount, DONATOR))[0];
         assert.strictEqual(priceSmallDonatorByOwner.toString(), priceSmallDonator.toString());
     })
 
     it("should be able to sell", async () => {
         let donatorBalanceBefore = Number(await web3.eth.getBalance(DONATOR));
         let bondingVaultBalanceBefore = Number(await web3.eth.getBalance(bondingVault.address));
-        let priceBeforeSell = (await community.myReturn(web3.utils.toWei("500", "finney"), {from: DONATOR}))[0]; //0.5 CHANCE
+        let priceBeforeSell = (await community.myReturn(web3.utils.toWei("100", "finney"), {from: DONATOR}))[0];
+        let expectedRemainingAfterSell = '288696680600241560'; //~0.28 CHANCE
+        let expectedTotalSupplyAfterSell = '888696680600241560' //~0.88 CHANCE
         await community.sell(web3.utils.toWei("500", "finney"), {from: DONATOR});//0.5 CHANCE
 
         //personal ETH balance increased
@@ -107,13 +120,13 @@ contract('EthKids', async (accounts) => {
         //bonding curve ETH balance decreased
         assert.isTrue(bondingVaultBalanceBefore > Number(await web3.eth.getBalance(bondingVault.address)));
         //personal CHANCE balance decreased
-        assert.strictEqual(web3.utils.toWei("500", "finney"), (await token.balanceOf(DONATOR)).toString());
+        assert.strictEqual(expectedRemainingAfterSell, (await token.balanceOf(DONATOR)).toString());
         //total supply decreased
-        assert.strictEqual((await token.totalSupply()).toString(), web3.utils.toWei("2500", "finney"));
+        assert.strictEqual((await token.totalSupply()).toString(), expectedTotalSupplyAfterSell);
 
-        let priceAfterSell = (await community.myReturn(web3.utils.toWei("500", "finney"), {from: DONATOR}))[0]; //0.5 CHANCE
-        console.log("priceBeforeSell: " + priceBeforeSell);
-        console.log("priceAfterSell: " + priceAfterSell);
+        let priceAfterSell = (await community.myReturn(web3.utils.toWei("100", "finney"), {from: DONATOR}))[0];
+        console.log("(3) My price before I sell: " + readableETH(priceBeforeSell));
+        console.log("(3) My price after I sold: " + readableETH(priceAfterSell));
     })
 
     it("should be able to pass to charity", async () => {
@@ -140,7 +153,7 @@ contract('EthKids', async (accounts) => {
         await community.sell(await token.balanceOf(DONATOR2), {from: DONATOR2});//
 
         assert.strictEqual((await token.totalSupply()).toString(), "0");
-        console.log("Vault after all sells: " + await web3.eth.getBalance(bondingVault.address));
+        console.log("Vault after all sells: " + readableETH(await web3.eth.getBalance(bondingVault.address)));
 
         //bad guy can't
         try {

@@ -42,14 +42,17 @@ contract BondingVault is Secondary {
         exponentContract = new FractionalExponents();
     }
 
-    function fundWithAward(address _donator) public payable onlyPrimary {
-        communityToken.mint(_donator, msg.value.mul(AWARD_RATIO));
+    function fundWithAward(address payable _donator) public payable onlyPrimary {
+        //calculate current 'buy' price for this donator
+        (uint256 price, uint256 _tokenAmount) = myBuyPrice(msg.value, _donator);
+
+        communityToken.mint(_donator, _tokenAmount);
         emit LogEthReceived(msg.value, _donator);
     }
 
     function sell(uint256 _amount, address payable _donator) public minimumBondingBalance onlyPrimary {
         // calculate sell return
-        (uint256 price, uint256 amountOfEth) = calculateReturn(_amount, _donator);
+        (uint256 price, uint256 amountOfEth) = mySellPrice(_amount, _donator);
 
         communityToken.burnFrom(_donator, _amount);
 
@@ -68,14 +71,36 @@ contract BondingVault is Secondary {
         emit LogEthSent(address(this).balance, _operator);
     }
 
-    function calculateReturn(uint256 _sellAmount, address payable _donator) public minimumBondingBalance onlyPrimary
+    function myBuyPrice(uint256 _ethAmount, address payable _donator) public minimumBondingBalance onlyPrimary
+    view returns (uint256 _finalPrice, uint256 _tokenAmount) {
+        uint256 _tokenSupply = communityToken.totalSupply();
+        uint256 _ethInVault = address(this).balance;
+        if (_tokenSupply == 0) {
+            //first donator in this community
+            _tokenSupply = 1 ether;
+            _ethInVault = 1 ether;
+        }
+        uint256 _tokenBalance = communityToken.balanceOf(_donator);
+        if (_tokenBalance == 0) {
+            //new donator, simulate 100% ownership
+            _tokenBalance = _tokenSupply;
+        }
+        (uint256 price, uint256 amountOfEth) = applyBondingFormula(_ethAmount, _tokenBalance, _tokenSupply, _ethInVault);
+        return (price, amountOfEth.mul(AWARD_RATIO));
+    }
+
+    function mySellPrice(uint256 _tokenAmount, address payable _donator) public minimumBondingBalance onlyPrimary
     view returns (uint256 _finalPrice, uint256 _redeemableEth) {
         uint256 _tokenBalance = communityToken.balanceOf(_donator);
-        require(_sellAmount > 0 && _tokenBalance >= _sellAmount, "Amount needs to be > 0 and tokenBalance >= amount to sell");
+        require(_tokenAmount > 0 && _tokenBalance >= _tokenAmount, "Amount needs to be > 0 and tokenBalance >= amount to sell");
 
         uint256 _tokenSupply = communityToken.totalSupply();
         uint256 _ethInVault = address(this).balance;
+        return applyBondingFormula(_tokenAmount, _tokenBalance, _tokenSupply, _ethInVault);
+    }
 
+    function applyBondingFormula(uint256 _tokenAmount, uint256 _tokenBalance, uint256 _tokenSupply, uint256 _ethInVault)
+    internal view returns (uint256 _finalPrice, uint256 _redeemableEth) {
         // For EVM accuracy
         uint256 _multiplier = 10 ** 18;
 
@@ -92,7 +117,7 @@ contract BondingVault is Secondary {
         _finalPrice = (interimPrice.mul(_multiplier)).div(2 ** uint256(_precision));
 
         // redeemable ETH (without multiplier)
-        _redeemableEth = _finalPrice.mul(_sellAmount).div(_multiplier);
+        _redeemableEth = _finalPrice.mul(_tokenAmount).div(_multiplier);
         return (_finalPrice, _redeemableEth);
     }
 
