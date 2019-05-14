@@ -18,4 +18,8 @@ contract CommunityToken is ERC20Mintable, ERC20Detailed {
         _burn(from, value);
     }
 
+    function _transfer(address from, address to, uint256 value) internal {
+        require(false, 'Community tokens can be only liquidated in the bonding curve');
+    }
+
 }
