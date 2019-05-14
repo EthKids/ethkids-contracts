@@ -94,9 +94,7 @@ interface BondingVaultInterface {
 
     function getCommunityToken() external view returns (address);
 
-    function myBuyPrice(uint256 _ethAmount, address payable _donator) external view returns (uint256 _finalPrice, uint256 _tokenAmount);
-
-    function mySellPrice(uint256 _sellAmount, address payable _donator) external view returns (uint256 _finalPrice, uint256 _redeemableEth);
+    function mySellPrice(uint256 _tokenAmount, address payable _donator) external view returns (uint256 _finalPrice, uint256 _redeemableEth);
 
     function sweepVault(address payable _operator) external;
 

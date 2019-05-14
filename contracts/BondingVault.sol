@@ -9,7 +9,6 @@ contract BondingVault is Secondary {
     using SafeMath for uint256;
 
     uint256 public constant AWARD_RATIO = 10; //X:1 ratio (e.g. for every 1 ETH sent to charity (!!!, not here), you get X tokens)
-    uint256 public constant MIN_ETH = 100 finney; // Minimum ETH balance for valid bonding curve
 
     CommunityToken public communityToken;
     FractionalExponents public exponentContract;
@@ -50,7 +49,7 @@ contract BondingVault is Secondary {
         emit LogEthReceived(msg.value, _donator);
     }
 
-    function sell(uint256 _amount, address payable _donator) public minimumBondingBalance onlyPrimary {
+    function sell(uint256 _amount, address payable _donator) public onlyPrimary {
         // calculate sell return
         (uint256 price, uint256 amountOfEth) = mySellPrice(_amount, _donator);
 
@@ -62,16 +61,18 @@ contract BondingVault is Secondary {
     }
 
     /**
-    * @dev Owner can withdraw the remaining ETH balance as long as no minted tokens left
+    * @dev Owner can withdraw the remaining ETH balance as long as amount of minted tokens is
+    * less than 1 token (due to possible rounding leftovers)
+    *
     */
     function sweepVault(address payable _operator) public onlyPrimary {
-        require(communityToken.totalSupply() == 0, 'Sweep available only if no minted tokens left');
+        require(communityToken.totalSupply() < 1 ether, 'Sweep available only if no minted tokens left');
         require(address(this).balance > 0, 'Vault is empty');
         _operator.transfer(address(this).balance);
         emit LogEthSent(address(this).balance, _operator);
     }
 
-    function myBuyPrice(uint256 _ethAmount, address payable _donator) public minimumBondingBalance onlyPrimary
+    function myBuyPrice(uint256 _ethAmount, address payable _donator) public onlyPrimary
     view returns (uint256 _finalPrice, uint256 _tokenAmount) {
         uint256 _tokenSupply = communityToken.totalSupply();
         uint256 _ethInVault = address(this).balance;
@@ -89,7 +90,7 @@ contract BondingVault is Secondary {
         return (price, amountOfEth.mul(AWARD_RATIO));
     }
 
-    function mySellPrice(uint256 _tokenAmount, address payable _donator) public minimumBondingBalance onlyPrimary
+    function mySellPrice(uint256 _tokenAmount, address payable _donator) public onlyPrimary
     view returns (uint256 _finalPrice, uint256 _redeemableEth) {
         uint256 _tokenBalance = communityToken.balanceOf(_donator);
         require(_tokenAmount > 0 && _tokenBalance >= _tokenAmount, "Amount needs to be > 0 and tokenBalance >= amount to sell");
@@ -125,10 +126,4 @@ contract BondingVault is Secondary {
         return address(communityToken);
     }
 
-
-
-    modifier minimumBondingBalance() {
-        require(address(this).balance >= MIN_ETH, "Not enough ETH in bonding vault yet");
-        _;
-    }
 }

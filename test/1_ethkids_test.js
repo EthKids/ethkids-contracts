@@ -26,6 +26,10 @@ contract('EthKids', async (accounts) => {
         return parseFloat(web3.utils.fromWei(wei.toString())).toFixed(3) + ' ETH';
     }
 
+    let readableTokens = function (wei) {
+        return parseFloat(web3.utils.fromWei(wei.toString())).toFixed(3) + ' CHANCE';
+    }
+
 
     before("run initial setup ", async () => {
         console.log(`Starting EthKids...`);
@@ -48,8 +52,11 @@ contract('EthKids', async (accounts) => {
     it("should be able to donate", async () => {
         await community.donate({from: DONATOR, value: web3.utils.toWei('1', 'ether')});
 
+        console.log("(1) First donator, got in tokens: " +
+            readableTokens(await token.balanceOf(DONATOR), {from: DONATOR}));
+
         console.log("(1) First donator, liquidation value ETH: " +
-            readableETH((await community.myReturn(web3.utils.toWei("100", "finney"), {from: DONATOR}))[1]));
+            readableETH((await community.myReturn(await token.balanceOf(DONATOR), {from: DONATOR})).amountOfEth));
 
         //charity fund
         let charityAfter = (await web3.eth.getBalance(charityVault.address)).toString();
@@ -74,7 +81,13 @@ contract('EthKids', async (accounts) => {
         await community.donate({from: DONATOR2, value: web3.utils.toWei('2', 'ether')});
 
         console.log("(1) First donator, liquidation value after another donator ETH: " +
-            readableETH((await community.myReturn(web3.utils.toWei("100", "finney"), {from: DONATOR}))[1]));
+            readableETH((await community.myReturn(await token.balanceOf(DONATOR), {from: DONATOR}))[1]));
+
+        console.log("(2) Second donator, got in tokens: " +
+            readableTokens(await token.balanceOf(DONATOR2), {from: DONATOR2}));
+
+        console.log("(2) Second donator, liquidation value ETH: " +
+            readableETH((await community.myReturn(await token.balanceOf(DONATOR2), {from: DONATOR2})).amountOfEth));
 
         //charity fund
         let charityAfter = (await web3.eth.getBalance(charityVault.address)).toString();
@@ -100,8 +113,8 @@ contract('EthKids', async (accounts) => {
         let priceSmallDonator = (await community.myReturn(testTokenAmount, {from: DONATOR}))[0];
         let priceBigDonator = (await community.myReturn(testTokenAmount, {from: DONATOR2}))[0];
 
-        console.log("(2) Donators comparison, buy/sell price for small: " + readableETH(priceSmallDonator));
-        console.log("(2) Donators comparison, buy/sell price for big: " + readableETH(priceBigDonator));
+        console.log("(3) Donators comparison, buy/sell price for small: " + readableETH(priceSmallDonator));
+        console.log("(3) Donators comparison, buy/sell price for big: " + readableETH(priceBigDonator));
 
         let priceSmallDonatorByOwner = (await community.returnForAddress(testTokenAmount, DONATOR))[0];
         assert.strictEqual(priceSmallDonatorByOwner.toString(), priceSmallDonator.toString());
@@ -125,8 +138,8 @@ contract('EthKids', async (accounts) => {
         assert.strictEqual((await token.totalSupply()).toString(), expectedTotalSupplyAfterSell);
 
         let priceAfterSell = (await community.myReturn(web3.utils.toWei("100", "finney"), {from: DONATOR}))[0];
-        console.log("(3) My price before I sell: " + readableETH(priceBeforeSell));
-        console.log("(3) My price after I sold: " + readableETH(priceAfterSell));
+        console.log("(4) My price before I sell: " + readableETH(priceBeforeSell));
+        console.log("(4) My price after I sold: " + readableETH(priceAfterSell));
     })
 
     it("should be able to pass to charity", async () => {
