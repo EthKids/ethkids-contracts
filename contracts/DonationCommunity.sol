@@ -92,6 +92,24 @@ contract DonationCommunity is SignerRole {
         return bondingVault.getCommunityToken();
     }
 
+    //Migrations
+
+    function replaceBuyFormula(address _newBuyFormula) public onlySigner {
+        bondingVault.setBuyFormula(_newBuyFormula);
+    }
+
+    function replaceSellFormula(address _newSellFormula) public onlySigner {
+        bondingVault.setSellFormula(_newSellFormula);
+    }
+
+    function replaceBondingVault(address _newBondingVault) public onlySigner {
+        bondingVault = BondingVaultInterface(_newBondingVault);
+    }
+
+    function replaceCharityVault() public onlySigner {
+        charityVault = new CharityVault();
+    }
+
 
 }
 
@@ -108,5 +126,9 @@ interface BondingVaultInterface {
     function mySellPrice(uint256 _tokenAmount, address payable _donator) external view returns (uint256 _finalPrice, uint256 _redeemableEth);
 
     function sweepVault(address payable _operator) external;
+
+    function setBuyFormula(address _newBuyFormula) external;
+
+    function setSellFormula(address _newSellFormula) external;
 
 }

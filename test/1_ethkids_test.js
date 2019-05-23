@@ -1,6 +1,7 @@
 const truffleAssert = require('truffle-assertions');
 
 var BuyFormula = artifacts.require("GrowingInflationV1");
+var SellFormula = artifacts.require("ExponentialV1");
 var BondingVault = artifacts.require("BondingVault");
 var CharityVault = artifacts.require("CharityVault");
 var DonationCommunity = artifacts.require("DonationCommunity");
@@ -212,6 +213,34 @@ contract('EthKids', async (accounts) => {
     it("new leader can renounce from community", async () => {
         await community.renounceSigner({from: EXTRA_OWNER});
         assert.strictEqual(await community.isSigner(EXTRA_OWNER), false);
+    })
+
+    it("can replace buy formula", async () => {
+        let oldBuyFormula = await bondingVault.buyFormula.call();
+
+        let newBuyFormula = await BuyFormula.new();
+        await community.replaceBuyFormula(newBuyFormula.address);
+
+        assert.strictEqual(await bondingVault.buyFormula.call(), newBuyFormula.address);
+    })
+
+    it("can replace sell formula", async () => {
+        let oldSellFormula = await bondingVault.liquidationFormula.call();
+
+        let newSellFormula = await SellFormula.new();
+        await community.replaceSellFormula(newSellFormula.address);
+
+        assert.strictEqual(await bondingVault.liquidationFormula.call(), newSellFormula.address);
+    })
+
+    it("can replace charity vault", async () => {
+        let oldCharityVault = charityVault;
+
+        await community.replaceCharityVault();
+
+        charityVault = await community.charityVault.call();
+
+        assert.isTrue(charityVault.address != oldCharityVault.address);
     })
 
 })

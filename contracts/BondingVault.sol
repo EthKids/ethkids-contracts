@@ -104,6 +104,14 @@ contract BondingVault is Secondary {
         return address(communityToken);
     }
 
+    function setBuyFormula(address _newBuyFormula) public onlyPrimary {
+        buyFormula = BuyFormula(_newBuyFormula);
+    }
+
+    function setSellFormula(address _newSellFormula) public onlyPrimary {
+        liquidationFormula = LiquidationFormula(_newSellFormula);
+    }
+
 }
 
 interface BuyFormula {
