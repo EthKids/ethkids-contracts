@@ -3,6 +3,12 @@ pragma solidity ^0.5.2;
 import "openzeppelin-solidity/contracts/ownership/Secondary.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
+/**
+ * @title CharityVault
+ * @dev Vault which holds the assets until the community leader(s) decide to transfer
+ * them to the actual charity destination.
+ * Deposit and withdrawal calls come only from the actual community contract
+ */
 contract CharityVault is Secondary {
     using SafeMath for uint256;
 
@@ -19,7 +25,7 @@ contract CharityVault is Secondary {
     );
 
     /**
-    * @dev fallback, 'anonymous' (as it can be in BC) donation
+    * @dev fallback, 'anonymous' donation
     **/
     function() external payable {
         sumStats.add(msg.value);

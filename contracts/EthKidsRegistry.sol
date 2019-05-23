@@ -2,6 +2,10 @@ pragma solidity ^0.5.2;
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
+/**
+ * @title EthKidsRegistry
+ * @dev Holds the list of the communities' addresses
+ */
 contract EthKidsRegistry is Ownable {
 
     uint256 public communityIndex = 0;

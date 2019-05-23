@@ -4,6 +4,11 @@ import "openzeppelin-solidity/contracts/access/roles/SignerRole.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "./CharityVault.sol";
 
+/**
+ * @title DonationCommunity
+ * @dev Main contract for a charity donation community.
+ * Creates a corresponding vault for charity and expects a 'smart' bonding vault to be provided
+ */
 contract DonationCommunity is SignerRole {
     using SafeMath for uint256;
 
@@ -56,6 +61,10 @@ contract DonationCommunity is SignerRole {
         emit LogDonationReceived(msg.sender, msg.value);
     }
 
+    function myBuy(uint256 _ethAmount) public view returns (uint256 finalPrice, uint256 tokenAmount) {
+        return bondingVault.myBuyPrice(_ethAmount, msg.sender);
+    }
+
     function myReturn(uint256 _sellAmount) public view returns (uint256 price, uint256 amountOfEth) {
         return returnForAddress(_sellAmount, msg.sender);
     }
@@ -93,6 +102,8 @@ interface BondingVaultInterface {
     function sell(uint256 _amount, address payable _donator) external;
 
     function getCommunityToken() external view returns (address);
+
+    function myBuyPrice(uint256 _ethAmount, address payable _donator) external view returns (uint256 _finalPrice, uint256 _tokenAmount);
 
     function mySellPrice(uint256 _tokenAmount, address payable _donator) external view returns (uint256 _finalPrice, uint256 _redeemableEth);
 
