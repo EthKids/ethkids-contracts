@@ -26,7 +26,7 @@ const HDWalletProvider = require('truffle-hdwallet-provider');
 
 const fs = require('fs');
 const infuraKey = fs.readFileSync(".secretInfura").toString().trim();
-const mnemonic = fs.readFileSync(".secret").toString().trim();
+const mnemonicRinkeby = fs.readFileSync(".mnemonicRinkeby").toString().trim();
 
 module.exports = {
     /**
@@ -66,7 +66,7 @@ module.exports = {
         // Useful for deploying to a public network.
         // NB: It's important to wrap the provider as a function.
         rinkeby: {
-            provider: () => new HDWalletProvider(mnemonic, `https://rinkeby.infura.io/v3/${infuraKey}`),
+            provider: () => new HDWalletProvider(mnemonicRinkeby, `https://rinkeby.infura.io/v3/${infuraKey}`),
             network_id: 4,       // Rinkeby's id
             gas: 6550000,
             confirmations: 2,    // # of confs to wait between deployments. (default: 0)

@@ -6,20 +6,11 @@ var EthKidsRegistry = artifacts.require("EthKidsRegistry");
 
 const empty_address = '0x0000000000000000000000000000000000000000';
 
-module.exports = async function (deployer, network, accounts) {
-
+async function deployCommunity(deployer, tokenName, tokenSym, initialTokenMint, initialValueFunding) {
     let buyFormulaInstance;
     let liquidationFormulaInstance;
     let bondingVaultInstance;
-    let donationCommunityInstance;
-    let registryInstance;
 
-    let tokenName = "ChanceBY";
-    let tokenSym = "CHANCE";
-    const initialTokenMint = web3.utils.toWei("1", "ether"); //1 CHANCE, required for initial 'sell price' calculation
-    const initialValueFunding = web3.utils.toWei("100", "finney"); //0.1 ETH, required for initial liquidation calculation
-
-    console.log(`  === Deploying EthKids contracts to ${network}...`);
     await deployer.deploy(LiquidationFormula);
     liquidationFormulaInstance = await LiquidationFormula.deployed();
     console.log('EthKids, LiquidationFormula: NEW ' + liquidationFormulaInstance.address);
@@ -34,18 +25,33 @@ module.exports = async function (deployer, network, accounts) {
     console.log('EthKids, BondingVault: NEW ' + bondingVaultInstance.address);
 
     await deployer.deploy(DonationCommunity, bondingVaultInstance.address);
-    donationCommunityInstance = await DonationCommunity.deployed();
-    console.log('EthKids, DonationCommunity: NEW ' + donationCommunityInstance.address);
+    chanceByCommunityInstance = await DonationCommunity.deployed();
+    console.log('EthKids, DonationCommunity: NEW ' + chanceByCommunityInstance.address);
 
     console.log(`  Transferring ownership of the bondingVault to community...`);
-    await bondingVaultInstance.transferPrimary(donationCommunityInstance.address);
+    await bondingVaultInstance.transferPrimary(chanceByCommunityInstance.address);
+
+    return chanceByCommunityInstance;
+
+}
+
+module.exports = async function (deployer, network, accounts) {
+
+    let chanceByCommunityInstance;
+    let registryInstance;
+
+    console.log(`  === Deploying EthKids contracts to ${network}...`);
+
+    const initialTokenMint = web3.utils.toWei("1", "ether"); //1 CHANCE, required for initial 'sell price' calculation
+    const initialValueFunding = web3.utils.toWei("100", "finney"); //0.1 ETH, required for initial liquidation calculation
+    chanceByCommunityInstance = await deployCommunity(deployer, "ChanceBY", "CHANCE", initialTokenMint, initialValueFunding);
 
     await deployer.deploy(EthKidsRegistry);
     registryInstance = await EthKidsRegistry.deployed();
     console.log('EthKids, EthKidsRegistry: NEW ' + registryInstance.address);
 
     console.log(`  Registering community in the registry...`);
-    await registryInstance.registerCommunity(donationCommunityInstance.address);
+    await registryInstance.registerCommunity(chanceByCommunityInstance.address);
 
     console.log('DONE migration');
 }
