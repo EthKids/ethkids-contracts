@@ -29,6 +29,7 @@ contract CharityVault is Secondary {
     **/
     function() external payable {
         sumStats.add(msg.value);
+        emit LogEthReceived(msg.value, msg.sender);
     }
 
     /**

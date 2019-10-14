@@ -26,7 +26,8 @@ const HDWalletProvider = require('truffle-hdwallet-provider');
 
 const fs = require('fs');
 const infuraKey = fs.readFileSync(".secretInfura").toString().trim();
-const mnemonicRinkeby = fs.readFileSync(".mnemonicRinkeby").toString().trim();
+const mnemonicRinkeby = fs.readFileSync(".mnemonicTest").toString().trim();
+const mnemonicRopsten = fs.readFileSync(".mnemonicTest").toString().trim();
 const mnemonicMain = fs.readFileSync(".mnemonicMain").toString().trim();
 
 module.exports = {
@@ -74,7 +75,14 @@ module.exports = {
             timeoutBlocks: 200,  // # of blocks before a deployment times out  (minimum/default: 50)
             skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )
         },
-
+        ropsten: {
+            provider: () => new HDWalletProvider(mnemonicRinkeby, `https://ropsten.infura.io/v3/${infuraKey}`),
+            network_id: 3,
+            gas: 6550000,
+            confirmations: 2,    // # of confs to wait between deployments. (default: 0)
+            timeoutBlocks: 200,  // # of blocks before a deployment times out  (minimum/default: 50)
+            skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )
+        },
         live: {
             provider: () => new HDWalletProvider(mnemonicMain, `https://mainnet.infura.io/v3/${infuraKey}`),
             network_id: 1,

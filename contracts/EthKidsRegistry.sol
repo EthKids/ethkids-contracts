@@ -14,6 +14,11 @@ contract EthKidsRegistry is Ownable {
     event CommunityRegistered(address communityAddress, uint256 index);
 
     function registerCommunity(address _communityAddress) onlyOwner public {
+        registerCommunityAt(_communityAddress, communityIndex);
+        communityIndex++;
+    }
+
+    function registerCommunityAt(address _communityAddress, uint256 index) onlyOwner public {
         communities[communityIndex] = _communityAddress;
         emit CommunityRegistered(_communityAddress, communityIndex);
         communityIndex++;

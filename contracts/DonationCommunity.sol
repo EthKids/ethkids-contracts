@@ -42,23 +42,41 @@ contract DonationCommunity is SignerRole {
         address(charityVault).transfer(msg.value);
     }
 
-    constructor (address _bondingVaultAddress) public {
+    /**
+    * @dev Secondary constructor, used for migrations
+    * @param _charityVaultAddress (Optional) address of the Charity Vault
+    * @param _bondingVaultAddress Address of the Bonding Vault
+    */
+    constructor (address payable _charityVaultAddress, address payable _bondingVaultAddress) public {
         require(_bondingVaultAddress != address(0));
-        charityVault = new CharityVault();
+        if (_charityVaultAddress == address(0)) {
+            charityVault = new CharityVault();
+        } else {
+            charityVault = CharityVault(_charityVaultAddress);
+        }
         bondingVault = BondingVaultInterface(_bondingVaultAddress);
     }
 
     function donate() public payable {
+        donateDelegated(msg.sender);
+    }
+
+    /**
+    * @dev Donate funds on behalf of someone else.
+    * Primary use is to pass the actual donator when the caller is a proxy, like KyberConverter
+    * @param _donator address that will be recorded as a donator and will receive the community tokens
+    **/
+    function donateDelegated(address payable _donator) public payable {
         require(msg.value > 0, "Must include some ETH to donate");
 
         uint256 _multiplier = 100;
         uint256 _charityAllocation = (msg.value).mul(CHARITY_DISTRIBUTION).div(_multiplier);
         uint256 _bondingAllocation = msg.value.sub(_charityAllocation);
-        charityVault.deposit.value(_charityAllocation)(msg.sender);
+        charityVault.deposit.value(_charityAllocation)(_donator);
 
-        bondingVault.fundWithAward.value(_bondingAllocation)(msg.sender);
+        bondingVault.fundWithAward.value(_bondingAllocation)(_donator);
 
-        emit LogDonationReceived(msg.sender, msg.value);
+        emit LogDonationReceived(_donator, msg.value);
     }
 
     function myBuy(uint256 _ethAmount) public view returns (uint256 finalPrice, uint256 tokenAmount) {
