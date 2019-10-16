@@ -15,6 +15,12 @@ contract KyberConverter is Ownable {
     // Events
     event Swap(address indexed sender, ERC20 srcToken, ERC20 destToken);
 
+    /**
+     * @dev Payable fallback to receive ETH while converting
+     **/
+    function() external payable {
+    }
+
     constructor (KyberNetworkProxyInterface _kyberNetworkProxyContract, address _walletId) public {
         kyberNetworkProxyContract = _kyberNetworkProxyContract;
         walletId = _walletId;
