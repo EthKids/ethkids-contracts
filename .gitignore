@@ -24,3 +24,12 @@ yarn-error.log*
 *.njsproj
 *.sln
 *.sw?
+
+# Idea
+*.iml
+
+#F lattened contracts
+*Flattened.sol
+
+# Compiled Solidity
+/build/contracts/
