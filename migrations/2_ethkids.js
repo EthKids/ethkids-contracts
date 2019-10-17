@@ -1,6 +1,7 @@
 var BuyFormula = artifacts.require("GrowingInflationV1");
 var LiquidationFormula = artifacts.require("ExponentialV1");
 var BondingVault = artifacts.require("BondingVault");
+var CharityVault = artifacts.require("CharityVault");
 var DonationCommunity = artifacts.require("DonationCommunity");
 var EthKidsRegistry = artifacts.require("EthKidsRegistry");
 var KyberConverter = artifacts.require("KyberConverter");
@@ -39,10 +40,30 @@ async function deployChanceBy(deployer) {
     return await deployCommunity(deployer, "ChanceBY", "CHANCE", initialTokenMint, initialValueFunding);
 }
 
-async function migrateCommunityCore(deployer, registry, community) {
-    let currentCharityVault = await community.charityVault;
-    let currentBondingVault = await community.bondingVault;
-    await registry.removeCommunity(0);
+async function migrateCommunityCoreAndRegistry(deployer) {
+    console.log(`  === New Registry...`);
+    await deployer.deploy(EthKidsRegistry);
+    let registry = await EthKidsRegistry.deployed();
+    console.log('EthKids, EthKidsRegistry: NEW ' + registry.address);
+
+
+    let currentCommunity = await DonationCommunity.at("0x87b98abd01219fc17300cfbce637774efd7e685b");
+    let currentCharityVault = await CharityVault.at("0x883e895397614bbec6855ffa75aaf83bbd752acf");
+    let currentBondingVault = await BondingVault.at("0xb2471fd32e44bfd2e09f0eb724e2022c7c966287");
+
+    console.log(`  ===Deploying new ChanceBY community core...`);
+    await deployer.deploy(DonationCommunity, currentCharityVault.address, currentBondingVault.address);
+    let chanceByCommunityInstance = await DonationCommunity.deployed();
+    console.log('EthKids, DonationCommunity: NEW ' + chanceByCommunityInstance.address);
+
+    console.log(`  ===Re-pointing both vault's to new owner (new community instance)...`);
+    await currentCommunity.transferOwnership(chanceByCommunityInstance.address);
+
+
+    console.log(`  Registering community in the registry...`);
+    await registry.registerCommunity(chanceByCommunityInstance.address);
+
+    console.log('DONE migration');
 
 }
 

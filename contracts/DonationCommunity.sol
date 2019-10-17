@@ -43,7 +43,8 @@ contract DonationCommunity is SignerRole {
     }
 
     /**
-    * @dev Secondary constructor, used for migrations
+    * @dev Constructor, used for initial creation and migrations
+    * @dev If migrating make sure (!!) both vaults' owners will be pointing to 'this' instance
     * @param _charityVaultAddress (Optional) address of the Charity Vault
     * @param _bondingVaultAddress Address of the Bonding Vault
     */
@@ -128,6 +129,15 @@ contract DonationCommunity is SignerRole {
         charityVault = new CharityVault();
     }
 
+    /**
+    * @dev If this community migrates but leaving existing vaults,
+    * this method must be called to re-point vaults to new community as the owner
+    */
+    function transferOwnership(address newPrimary) public onlySigner {
+        charityVault.transferPrimary(newPrimary);
+        bondingVault.transferPrimary(newPrimary);
+    }
+
 
 }
 
@@ -148,5 +158,7 @@ interface BondingVaultInterface {
     function setBuyFormula(address _newBuyFormula) external;
 
     function setSellFormula(address _newSellFormula) external;
+
+    function transferPrimary(address recipient) external;
 
 }
