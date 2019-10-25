@@ -12,6 +12,8 @@ contract KyberConverter is Ownable {
     KyberNetworkProxyInterface public kyberNetworkProxyContract;
     address public walletId;
 
+    ERC20 public stableToken;
+
     // Events
     event Swap(address indexed sender, ERC20 srcToken, ERC20 destToken);
 
@@ -21,9 +23,18 @@ contract KyberConverter is Ownable {
     function() external payable {
     }
 
-    constructor (KyberNetworkProxyInterface _kyberNetworkProxyContract, address _walletId) public {
+    constructor (KyberNetworkProxyInterface _kyberNetworkProxyContract, address _walletId, address _stableAddress) public {
         kyberNetworkProxyContract = _kyberNetworkProxyContract;
         walletId = _walletId;
+        stableToken = ERC20(_stableAddress);
+    }
+
+    function setStableToken(address _stableAddress) public onlyOwner {
+        stableToken = ERC20(_stableAddress);
+    }
+
+    function getStableToken() public view returns (address) {
+        return address(stableToken);
     }
 
     /**
@@ -113,8 +124,38 @@ contract KyberConverter is Ownable {
         emit Swap(msg.sender, srcToken, ETH_TOKEN_ADDRESS);
     }
 
+    function executeSwapMyETHToStable(
+    ) public payable returns (uint256) {
+        uint minConversionRate;
+        uint srcQty = msg.value;
+        address destAddress = msg.sender;
+
+        // Get the minimum conversion rate
+        (minConversionRate,) = kyberNetworkProxyContract.getExpectedRate(ETH_TOKEN_ADDRESS, stableToken, srcQty);
+
+        uint maxDestAmount = srcQty.mul(minConversionRate).mul(105).div(100);
+        // 5%
+
+        // Swap the ERC20 token and send to destAddress
+        bytes memory hint;
+        uint256 amount = kyberNetworkProxyContract.tradeWithHint.value(srcQty)(
+            ETH_TOKEN_ADDRESS,
+            srcQty,
+            stableToken,
+            destAddress,
+            maxDestAmount,
+            minConversionRate,
+            walletId,
+            hint
+        );
+        // Log the event
+        emit Swap(msg.sender, ETH_TOKEN_ADDRESS, stableToken);
+
+        return amount;
+    }
+
     /**
-     * @dev Recovery for change funds
+     * @dev Recovery for the remaining change
      */
     function withdraw() public onlyOwner {
         require(address(this).balance > 0, "Insufficient funds to withdraw");

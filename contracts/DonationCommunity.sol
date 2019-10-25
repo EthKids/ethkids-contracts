@@ -3,6 +3,7 @@ pragma solidity ^0.5.2;
 import "openzeppelin-solidity/contracts/access/roles/SignerRole.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "./CharityVault.sol";
+import "./RegistryInterface.sol";
 
 /**
  * @title DonationCommunity
@@ -16,6 +17,8 @@ contract DonationCommunity is SignerRole {
 
     CharityVault public charityVault;
     BondingVaultInterface public bondingVault;
+
+    RegistryInterface public registeredAt;
 
     event LogDonationReceived
     (
@@ -36,10 +39,10 @@ contract DonationCommunity is SignerRole {
     );
 
     /**
-    * @dev Default fallback function, just deposits funds to the charity
+    * @dev Default fallback function, just deposits funds to the community
     */
     function() external payable {
-        address(charityVault).transfer(msg.value);
+        ((address) (bondingVault)).call.value(msg.value)("");
     }
 
     /**
@@ -56,6 +59,11 @@ contract DonationCommunity is SignerRole {
             charityVault = CharityVault(_charityVaultAddress);
         }
         bondingVault = BondingVaultInterface(_bondingVaultAddress);
+    }
+
+    function setRegistry(address _registry) public onlySigner {
+        registeredAt = (RegistryInterface)(_registry);
+        charityVault.setCurrencyConverter(registeredAt.getCurrencyConverter());
     }
 
     function donate() public payable {
