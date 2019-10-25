@@ -85,8 +85,10 @@ module.exports = {
         },
         live: {
             provider: () => new HDWalletProvider(mnemonicMain, `https://mainnet.infura.io/v3/${infuraKey}`),
+            gasPrice: 4000000000, //4Gwei
             network_id: 1,
             confirmations: 2,
+            timeoutBlocks: 200,  // # of blocks before a deployment times out  (minimum/default: 50)
             skipDryRun: true
         },
     },
