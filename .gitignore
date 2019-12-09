@@ -9,7 +9,6 @@ node_modules
 # secrets
 .mnemonicTest
 .mnemonicMain
-.secretInfura
 
 # Log files
 npm-debug.log*
