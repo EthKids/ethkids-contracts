@@ -90,7 +90,8 @@ function getKyberForNetwork(network, accounts) {
         return {
             kyberNetworkAddress: '0x818E6FECD516Ecc3849DAf6845e3EC868087B755',
             feeWallet: '0xDdC0E4931936d9F590Ccb29f7f4758751479d0A8',
-            stableToken: '0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359', //DAI
+            stableToken: '0x6b175474e89094c44da98b954eedeac495271d0f', //DAI
+            //stableToken: '0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359', //SAI
         }
     }
 }
