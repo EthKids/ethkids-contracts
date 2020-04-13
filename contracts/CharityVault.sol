@@ -2,7 +2,7 @@ pragma solidity ^0.5.2;
 
 import "openzeppelin-solidity/contracts/ownership/Secondary.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import "../../smart-contracts/contracts/ERC20Interface.sol";
+import "../contracts/kyber/ERC20Interface.sol";
 
 /**
  * @title CharityVault

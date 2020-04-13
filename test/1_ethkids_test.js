@@ -62,7 +62,7 @@ contract('EthKids', async (accounts) => {
 
         await community.donate({from: DONATOR, value: web3.utils.toWei('1', 'ether')});
 
-        console.log("(1) First donator, got in tokens: " +
+        /*console.log("(1) First donator, got in tokens: " +
             readableTokens(await token.balanceOf(DONATOR, {from: DONATOR})));
 
         console.log("(1) First donator, liquidation value ETH: " +
@@ -85,10 +85,10 @@ contract('EthKids', async (accounts) => {
         assert.strictEqual(bondingCurveAfter, web3.utils.toWei("200", "finney"));
 
         //token minted
-        assert.strictEqual((await token.totalSupply()).toString(), web3.utils.toWei("2", "ether")); //2 CHANCE (1 initially + now)
+        assert.strictEqual((await token.totalSupply()).toString(), web3.utils.toWei("2", "ether")); //2 CHANCE (1 initially + now)*/
     })
 
-    it("should sum up on second donation", async () => {
+    /*it("should sum up on second donation", async () => {
         console.log("(2) My buy price: " +
             (await community.myBuy(web3.utils.toWei('1', 'ether'), {from: DONATOR2})).finalPrice);
         await community.donate({from: DONATOR2, value: web3.utils.toWei('2', 'ether')});
@@ -241,6 +241,6 @@ contract('EthKids', async (accounts) => {
         charityVault = await community.charityVault.call();
 
         assert.isTrue(charityVault.address != oldCharityVault.address);
-    })
+    })*/
 
 })
