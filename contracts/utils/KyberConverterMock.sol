@@ -2,6 +2,12 @@ pragma solidity ^0.5.2;
 
 import "../KyberConverter.sol";
 
+/**
+ * @title KyberConverterMock
+ * @dev The dummy mostly for test to mock the actual Kyber swap
+ * It swaps the ETH to 'stable' 1:1, keeping the ETH and giving back owned 'stable' ERC
+ *
+ */
 contract KyberConverterMock is KyberConverter {
 
     constructor (KyberNetworkProxyInterface _kyberNetworkProxyContract, address _walletId, address _stableAddress)
