@@ -18,7 +18,7 @@ contract DonationCommunity is SignerRole {
     CharityVault public charityVault;
     BondingVaultInterface public bondingVault;
 
-    RegistryInterface public registeredAt;
+    RegistryInterface public registry;
 
     event LogDonationReceived
     (
@@ -62,8 +62,8 @@ contract DonationCommunity is SignerRole {
     }
 
     function setRegistry(address _registry) public onlySigner {
-        registeredAt = (RegistryInterface)(_registry);
-        charityVault.setCurrencyConverter(registeredAt.getCurrencyConverter());
+        registry = (RegistryInterface)(_registry);
+        charityVault.setCurrencyConverter(registry.getCurrencyConverter());
     }
 
     function donate() public payable {
