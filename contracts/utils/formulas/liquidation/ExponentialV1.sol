@@ -1,6 +1,6 @@
 pragma solidity ^0.5.2;
 
-import "./FractionalExponents.sol";
+import ".././FractionalExponents.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 /**

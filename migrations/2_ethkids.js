@@ -1,5 +1,4 @@
-var BuyFormula = artifacts.require("GrowingInflationV1");
-var LiquidationFormula = artifacts.require("ExponentialV1");
+var ExponentialDeflation = artifacts.require("ExponentialDeflation");
 var BondingVault = artifacts.require("BondingVault");
 var CharityVault = artifacts.require("CharityVault");
 var DonationCommunity = artifacts.require("DonationCommunity");
@@ -10,15 +9,11 @@ const empty_address = '0x0000000000000000000000000000000000000000';
 
 async function deployCommunity(deployer, tokenName, tokenSym, initialTokenMint, initialValueFunding) {
 
-    await deployer.deploy(LiquidationFormula);
-    const liquidationFormulaInstance = await LiquidationFormula.deployed();
-    console.log('EthKids, LiquidationFormula: NEW ' + liquidationFormulaInstance.address);
+    await deployer.deploy(ExponentialDeflation);
+    const bondingFormulaInstance = await ExponentialDeflation.deployed();
+    console.log('EthKids, ExponentialDeflation: NEW ' + bondingFormulaInstance.address);
 
-    await deployer.deploy(BuyFormula);
-    const buyFormulaInstance = await BuyFormula.deployed();
-    console.log('EthKids, BuyFormula: NEW ' + buyFormulaInstance.address);
-
-    await deployer.deploy(BondingVault, tokenName, tokenSym, buyFormulaInstance.address, liquidationFormulaInstance.address,
+    await deployer.deploy(BondingVault, tokenName, tokenSym, bondingFormulaInstance.address,
         initialTokenMint, {value: initialValueFunding});
     const bondingVaultInstance = await BondingVault.deployed();
     console.log('EthKids, BondingVault: NEW ' + bondingVaultInstance.address);

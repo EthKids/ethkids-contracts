@@ -3,6 +3,11 @@ pragma solidity ^0.5.2;
 import "./FractionalExponents.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
+/**
+ * ExponentialDeflation.sol
+ * Copied and modified from:
+ *  https://github.com/bancorprotocol/contracts/blob/master/solidity/contracts/converter/BancorFormula.sol
+ */
 contract ExponentialDeflation {
 
     using SafeMath for uint256;
@@ -59,10 +64,10 @@ contract ExponentialDeflation {
     */
     function calculateSaleReturn(uint256 _supply, uint256 _currentHoldings, uint256 _sellAmount) public view returns (uint256) {
         // validate input
-        require(_supply > 0 && _currentHoldings > 0 && _sellAmount <= _supply);
+        require(_supply > 0 && _sellAmount <= _supply);
 
-        // special case for 0 sell amount
-        if (_sellAmount == 0)
+        // special case for 0 sell amount and 0 personal holdings
+        if (_sellAmount == 0 || _currentHoldings == 0)
             return 0;
 
         // special case for selling the entire supply

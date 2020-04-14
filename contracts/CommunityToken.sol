@@ -11,6 +11,8 @@ import "openzeppelin-solidity/contracts/token/ERC20/ERC20Detailed.sol";
  */
 contract CommunityToken is ERC20Mintable, ERC20Detailed {
 
+    uint256 public smallestHolding = 10 ** 18;
+
     constructor (string memory name, string memory symbol) ERC20Detailed(name, symbol, 18) public {
     }
 
@@ -26,6 +28,22 @@ contract CommunityToken is ERC20Mintable, ERC20Detailed {
 
     function _transfer(address from, address to, uint256 value) internal {
         require(false, 'Community tokens can be only liquidated in the bonding curve');
+    }
+
+    function _mint(address account, uint256 value) internal {
+        super._mint(account, value);
+        _onBalanceChange(account);
+    }
+
+    function _burn(address account, uint256 value) internal {
+        super._burn(account, value);
+        _onBalanceChange(account);
+    }
+
+    function _onBalanceChange(address account) internal {
+        if (balanceOf(account) < smallestHolding) {
+            smallestHolding = balanceOf(account);
+        }
     }
 
 }

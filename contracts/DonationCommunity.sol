@@ -88,16 +88,16 @@ contract DonationCommunity is SignerRole {
         emit LogDonationReceived(_donator, msg.value);
     }
 
-    function myBuy(uint256 _ethAmount) public view returns (uint256 finalPrice, uint256 tokenAmount) {
-        return bondingVault.myBuyPrice(_ethAmount, msg.sender);
+    function myReward(uint256 _ethAmount) public view returns (uint256 tokenAmount) {
+        return bondingVault.calculateReward(_ethAmount, msg.sender);
     }
 
-    function myReturn(uint256 _sellAmount) public view returns (uint256 price, uint256 amountOfEth) {
+    function myReturn(uint256 _sellAmount) public view returns (uint256 amountOfEth) {
         return returnForAddress(_sellAmount, msg.sender);
     }
 
-    function returnForAddress(uint256 _sellAmount, address payable _requestedAddress) public view returns (uint256 price, uint256 amountOfEth) {
-        return bondingVault.mySellPrice(_sellAmount, _requestedAddress);
+    function returnForAddress(uint256 _sellAmount, address payable _requestedAddress) public view returns (uint256 amountOfEth) {
+        return bondingVault.calculateReturn(_sellAmount, _requestedAddress);
     }
 
     function sell(uint256 _amount) public {
@@ -121,12 +121,8 @@ contract DonationCommunity is SignerRole {
 
     //Migrations
 
-    function replaceBuyFormula(address _newBuyFormula) public onlySigner {
-        bondingVault.setBuyFormula(_newBuyFormula);
-    }
-
-    function replaceSellFormula(address _newSellFormula) public onlySigner {
-        bondingVault.setSellFormula(_newSellFormula);
+    function replaceFormula(address _newFormula) public onlySigner {
+        bondingVault.setFormula(_newFormula);
     }
 
     function replaceBondingVault(address _newBondingVault) public onlySigner {
@@ -157,15 +153,13 @@ interface BondingVaultInterface {
 
     function getCommunityToken() external view returns (address);
 
-    function myBuyPrice(uint256 _ethAmount, address payable _donator) external view returns (uint256 _finalPrice, uint256 _tokenAmount);
+    function calculateReward(uint256 _ethAmount, address payable _donor) external view returns (uint256 _tokenAmount);
 
-    function mySellPrice(uint256 _tokenAmount, address payable _donator) external view returns (uint256 _finalPrice, uint256 _redeemableEth);
+    function calculateReturn(uint256 _tokenAmount, address payable _donor) external view returns (uint256 _returnEth);
 
     function sweepVault(address payable _operator) external;
 
-    function setBuyFormula(address _newBuyFormula) external;
-
-    function setSellFormula(address _newSellFormula) external;
+    function setFormula(address _newFormula) external;
 
     function transferPrimary(address recipient) external;
 
