@@ -182,10 +182,9 @@ contract('EthKids', async (accounts) => {
     it("should be able to sweep the bonding curve vault", async () => {
         //sell all
         await community.sell(await token.balanceOf(DONOR), {from: DONOR});
-        console.log('d2' + await token.balanceOf(DONOR2));
         await community.sell(await token.balanceOf(DONOR2), {from: DONOR2});
 
-        /*assert.strictEqual((await token.totalSupply()).toString(), "1000000000000000000"); //1 CHANCE, initial one
+        assert.strictEqual((await token.totalSupply()).toString(), "1000000000000000000"); //1 CHANCE, initial one
         console.log("Vault after all sells: " + readableETH(await web3.eth.getBalance(bondingVault.address)));
 
         //bad guy can't
@@ -197,11 +196,10 @@ contract('EthKids', async (accounts) => {
         }
 
         await community.sweepBondingVault();
-        assert.isTrue(Number(await stableToken.balanceOf(charityVault.address)) == 0);*/
-
+        assert.isTrue(Number(await web3.eth.getBalance(bondingVault.address)) == 0);
     })
 
-    /*it("should be able to add an extra community leader", async () => {
+    it("should be able to add an extra community leader", async () => {
         assert.strictEqual(await community.isSigner(EXTRA_OWNER), false);
 
         await community.addSigner(EXTRA_OWNER);
@@ -224,7 +222,7 @@ contract('EthKids', async (accounts) => {
         assert.strictEqual(await community.isSigner(EXTRA_OWNER), false);
     })
 
-    it("can replace bu formula", async () => {
+    it("can replace buy formula", async () => {
         let oldFormula = await bondingVault.bondingCurveFormula.call();
 
         let newFormula = await ExponentialDeflation.new();
@@ -241,6 +239,6 @@ contract('EthKids', async (accounts) => {
         charityVault = await community.charityVault.call();
 
         assert.isTrue(charityVault.address != oldCharityVault.address);
-    })*/
+    })
 
 })
