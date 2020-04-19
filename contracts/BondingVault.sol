@@ -82,7 +82,7 @@ contract BondingVault is Secondary {
             //first donation, offer best market price
             _tokenBalance = communityToken.smallestHolding();
         }
-        return bondingCurveFormula.calculatePurchaseReturn(_tokenSupply, _tokenBalance, _ethAmount);
+        return bondingCurveFormula.calculatePurchaseReturn(_tokenSupply, _tokenBalance, address(this).balance, _ethAmount);
     }
 
     function calculateReturn(uint256 _tokenAmount, address payable _donor) public onlyPrimary
@@ -91,7 +91,7 @@ contract BondingVault is Secondary {
         require(_tokenAmount > 0 && _tokenBalance >= _tokenAmount, "Amount needs to be > 0 and tokenBalance >= amount to sell");
 
         uint256 _tokenSupply = communityToken.totalSupply();
-        return bondingCurveFormula.calculateSaleReturn(_tokenSupply, _tokenBalance, _tokenAmount);
+        return bondingCurveFormula.calculateSaleReturn(_tokenSupply, _tokenBalance, address(this).balance, _tokenAmount);
     }
 
     function getCommunityToken() public view onlyPrimary returns (address) {
@@ -106,8 +106,8 @@ contract BondingVault is Secondary {
 
 interface BondingCurveFormula {
 
-    function calculatePurchaseReturn(uint256 _supply, uint256 _currentHoldings, uint256 _depositAmount) external view returns (uint256);
+    function calculatePurchaseReturn(uint256 _supply, uint256 _currentHoldings, uint256 _reserveBalance, uint256 _depositAmount) external view returns (uint256);
 
-    function calculateSaleReturn(uint256 _supply, uint256 _currentHoldings, uint256 _sellAmount) external view returns (uint256);
+    function calculateSaleReturn(uint256 _supply, uint256 _currentHoldings, uint256 _reserveBalance, uint256 _sellAmount) external view returns (uint256);
 
 }

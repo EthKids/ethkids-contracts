@@ -6,6 +6,7 @@ contract('ExponentialPrice', async (accounts) => {
 
     let formula;
     let TOKEN_MINTED = web3.utils.toWei('100', 'ether');
+    let CURVE_RESERVE = web3.utils.toWei('100', 'ether');
 
     before("run initial setup ", async () => {
         console.log(`Starting ExponentialDeflation...`);
@@ -18,6 +19,7 @@ contract('ExponentialPrice', async (accounts) => {
             const buying = await formula.calculatePurchaseReturn(
                 TOKEN_MINTED,                                   //total supply
                 web3.utils.toWei(i.toString(), 'ether'),        //personal CHANCE holdings
+                CURVE_RESERVE,
                 web3.utils.toWei('1', 'ether'));                //amount ETH paying
             //console.log((buying/(Number)(web3.utils.toWei('1', 'ether'))).toString());
         }
@@ -28,6 +30,7 @@ contract('ExponentialPrice', async (accounts) => {
             const selling = await formula.calculateSaleReturn(
                 TOKEN_MINTED,                                   //total supply
                 web3.utils.toWei(i.toString(), 'ether'),        //personal CHANCE holdings
+                CURVE_RESERVE,
                 web3.utils.toWei('1', 'ether'));                //amount CHANCE selling
             const liquidatedForEth = selling / (Number)(web3.utils.toWei('1', 'ether'));
             //console.log(liquidatedForEth.toString());
