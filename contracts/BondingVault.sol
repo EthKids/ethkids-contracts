@@ -48,7 +48,7 @@ contract BondingVault is Secondary {
     }
 
     function fundWithAward(address payable _donor) public payable onlyPrimary {
-        uint256 _tokenAmount = calculateReward(msg.value, _donor);
+        uint256 _tokenAmount = calculateReward(msg.value, _donor, msg.value.add(address(this).balance));
 
         communityToken.mint(_donor, _tokenAmount);
         emit LogEthReceived(msg.value, _donor);
@@ -74,7 +74,7 @@ contract BondingVault is Secondary {
         emit LogEthSent(address(this).balance, _operator);
     }
 
-    function calculateReward(uint256 _ethAmount, address payable _donor) public onlyPrimary
+    function calculateReward(uint256 _ethAmount, address payable _donor, uint256 _vaultBalance) public onlyPrimary
     view returns (uint256 tokenAmount) {
         uint256 _tokenSupply = communityToken.totalSupply();
         uint256 _tokenBalance = communityToken.balanceOf(_donor);
@@ -82,7 +82,7 @@ contract BondingVault is Secondary {
             //first donation, offer best market price
             _tokenBalance = communityToken.smallestHolding();
         }
-        return bondingCurveFormula.calculatePurchaseReturn(_tokenSupply, _tokenBalance, address(this).balance, _ethAmount);
+        return bondingCurveFormula.calculatePurchaseReturn(_tokenSupply, _tokenBalance, _vaultBalance, _ethAmount);
     }
 
     function calculateReturn(uint256 _tokenAmount, address payable _donor) public onlyPrimary

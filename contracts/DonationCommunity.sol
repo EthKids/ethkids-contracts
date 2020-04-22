@@ -66,30 +66,36 @@ contract DonationCommunity is SignerRole {
         charityVault.setCurrencyConverter(registry.getCurrencyConverter());
     }
 
+    function allocate(uint256 donation) internal view returns (uint256 _charityAllocation, uint256 _bondingAllocation) {
+        uint256 _multiplier = 100;
+        uint256 _charityAllocation = (donation).mul(CHARITY_DISTRIBUTION).div(_multiplier);
+        uint256 _bondingAllocation = donation.sub(_charityAllocation);
+        return (_charityAllocation, _bondingAllocation);
+    }
+
     function donate() public payable {
         donateDelegated(msg.sender);
     }
 
     /**
     * @dev Donate funds on behalf of someone else.
-    * Primary use is to pass the actual donator when the caller is a proxy, like KyberConverter
-    * @param _donator address that will be recorded as a donator and will receive the community tokens
+    * Primary use is to pass the actual donor when the caller is a proxy, like KyberConverter
+    * @param _donor address that will be recorded as a donor and will receive the community tokens
     **/
-    function donateDelegated(address payable _donator) public payable {
+    function donateDelegated(address payable _donor) public payable {
         require(msg.value > 0, "Must include some ETH to donate");
 
-        uint256 _multiplier = 100;
-        uint256 _charityAllocation = (msg.value).mul(CHARITY_DISTRIBUTION).div(_multiplier);
-        uint256 _bondingAllocation = msg.value.sub(_charityAllocation);
-        charityVault.deposit.value(_charityAllocation)(_donator);
+        (uint256 _charityAllocation, uint256  _bondingAllocation) = allocate(msg.value);
+        charityVault.deposit.value(_charityAllocation)(_donor);
 
-        bondingVault.fundWithAward.value(_bondingAllocation)(_donator);
+        bondingVault.fundWithAward.value(_bondingAllocation)(_donor);
 
-        emit LogDonationReceived(_donator, msg.value);
+        emit LogDonationReceived(_donor, msg.value);
     }
 
     function myReward(uint256 _ethAmount) public view returns (uint256 tokenAmount) {
-        return bondingVault.calculateReward(_ethAmount, msg.sender);
+        (uint256 _charityAllocation, uint256  _bondingAllocation) = allocate(_ethAmount);
+        return bondingVault.calculateReward(_bondingAllocation, msg.sender, _bondingAllocation.add(address(bondingVault).balance));
     }
 
     function myReturn(uint256 _sellAmount) public view returns (uint256 amountOfEth) {
@@ -147,13 +153,13 @@ contract DonationCommunity is SignerRole {
 
 interface BondingVaultInterface {
 
-    function fundWithAward(address payable _donator) external payable;
+    function fundWithAward(address payable _donor) external payable;
 
-    function sell(uint256 _amount, address payable _donator) external;
+    function sell(uint256 _amount, address payable _donor) external;
 
     function getCommunityToken() external view returns (address);
 
-    function calculateReward(uint256 _ethAmount, address payable _donor) external view returns (uint256 _tokenAmount);
+    function calculateReward(uint256 _ethAmount, address payable _donor, uint256 _vaultBalance) external view returns (uint256 _tokenAmount);
 
     function calculateReturn(uint256 _tokenAmount, address payable _donor) external view returns (uint256 _returnEth);
 
