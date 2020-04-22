@@ -11,14 +11,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kivanov82/ethkids-contracts.git"
+    "url": "https://github.com/EthKids"
   },
   "author": "Kiril Ivanov",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/kivanov82/ethkids-contracts/issues"
-  },
-  "homepage": "https://github.com/kivanov82/ethkids-contracts#readme",
+  "homepage": "https://github.com/EthKids/ethkids-ui",
   "dependencies": {
     "openzeppelin-solidity": "^2.2.0",
     "truffle-assertions": "^0.8.2",
