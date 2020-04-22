@@ -4,7 +4,7 @@ var ExponentialDeflation = artifacts.require("ExponentialDeflation");
 var BondingVault = artifacts.require("BondingVault");
 var CharityVault = artifacts.require("CharityVault");
 var DonationCommunity = artifacts.require("DonationCommunity");
-var CommunityToken = artifacts.require("CommunityToken");
+var EthKidsToken = artifacts.require("EthKidsToken");
 var EthKidsRegistry = artifacts.require("EthKidsRegistry");
 var KyberConverterMock = artifacts.require("KyberConverterMock");
 var ERC20Mintable = artifacts.require("ERC20Mintable");
@@ -53,7 +53,7 @@ contract('EthKids', async (accounts) => {
 
         charityVault = await CharityVault.at(await community.charityVault.call());
 
-        token = await CommunityToken.at(await community.getCommunityToken());
+        token = await EthKidsToken.at(await community.getEthKidsToken());
 
         formula = await ExponentialDeflation.at(await bondingVault.bondingCurveFormula.call());
 
@@ -244,16 +244,6 @@ contract('EthKids', async (accounts) => {
         await community.replaceFormula(newFormula.address);
 
         assert.strictEqual(await bondingVault.bondingCurveFormula.call(), newFormula.address);
-    })
-
-    it("can replace charity vault", async () => {
-        let oldCharityVault = charityVault;
-
-        await community.replaceCharityVault();
-
-        charityVault = await community.charityVault.call();
-
-        assert.isTrue(charityVault.address != oldCharityVault.address);
     })
 
 })

@@ -4,6 +4,7 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "../contracts/kyber/KyberNetworkProxyInterface.sol";
 import "../contracts/kyber/ERC20Interface.sol";
+import "../contracts/community/IDonationCommunity.sol";
 
 contract KyberConverter is Ownable {
     using SafeMath for uint256;
@@ -162,9 +163,4 @@ contract KyberConverter is Ownable {
         msg.sender.transfer(address(this).balance);
     }
 
-}
-
-interface IDonationCommunity {
-
-    function donateDelegated(address payable _donator) external payable;
 }

@@ -6,60 +6,21 @@ var EthKidsRegistry = artifacts.require("EthKidsRegistry");
 var KyberConverter = artifacts.require("KyberConverter");
 
 const empty_address = '0x0000000000000000000000000000000000000000';
+const initialTokenMint = web3.utils.toWei("1", "ether"); //1 CHANCE, required for initial 'sell price' calculation
+const initialValueFunding = web3.utils.toWei("100", "finney"); //0.1 ETH, required for initial liquidation calculation
+const tokenName = 'Chance';
+const tokenSym = "CHANCE";
 
-async function deployCommunity(deployer, tokenName, tokenSym, initialTokenMint, initialValueFunding) {
 
-    await deployer.deploy(ExponentialDeflation);
-    const bondingFormulaInstance = await ExponentialDeflation.deployed();
-    console.log('EthKids, ExponentialDeflation: NEW ' + bondingFormulaInstance.address);
-
-    await deployer.deploy(BondingVault, tokenName, tokenSym, bondingFormulaInstance.address,
-        initialTokenMint, {value: initialValueFunding});
-    const bondingVaultInstance = await BondingVault.deployed();
-    console.log('EthKids, BondingVault: NEW ' + bondingVaultInstance.address);
-
-    await deployer.deploy(DonationCommunity, empty_address, bondingVaultInstance.address);
+async function deployCommunity(deployer, name, registryAddress) {
+    await deployer.deploy(DonationCommunity, name);
     const communityInstance = await DonationCommunity.deployed();
-    console.log('EthKids, DonationCommunity: NEW ' + communityInstance.address);
-
-    console.log(`  Transferring ownership of the bondingVault to community...`);
-    await bondingVaultInstance.transferPrimary(communityInstance.address);
-
+    await communityInstance.addWhitelisted(registryAddress);
     return communityInstance;
-
 }
 
-async function deployChanceBy(deployer) {
-    const initialTokenMint = web3.utils.toWei("1", "ether"); //1 CHANCE, required for initial 'sell price' calculation
-    const initialValueFunding = web3.utils.toWei("100", "finney"); //0.1 ETH, required for initial liquidation calculation
-    return await deployCommunity(deployer, "ChanceBY", "CHANCE", initialTokenMint, initialValueFunding);
-}
-
-async function migrateCommunityCoreAndRegistry(deployer) {
-    console.log(`  === New Registry...`);
-    await deployer.deploy(EthKidsRegistry);
-    let registry = await EthKidsRegistry.deployed();
-    console.log('EthKids, EthKidsRegistry: NEW ' + registry.address);
-
-
-    let currentCommunity = await DonationCommunity.at("0x87b98abd01219fc17300cfbce637774efd7e685b");
-    let currentCharityVault = await CharityVault.at("0x883e895397614bbec6855ffa75aaf83bbd752acf");
-    let currentBondingVault = await BondingVault.at("0xb2471fd32e44bfd2e09f0eb724e2022c7c966287");
-
-    console.log(`  ===Deploying new ChanceBY community core...`);
-    await deployer.deploy(DonationCommunity, currentCharityVault.address, currentBondingVault.address);
-    let chanceByCommunityInstance = await DonationCommunity.deployed();
-    console.log('EthKids, DonationCommunity: NEW ' + chanceByCommunityInstance.address);
-
-    console.log(`  ===Re-pointing both vault's to new owner (new community instance)...`);
-    await currentCommunity.transferOwnership(chanceByCommunityInstance.address);
-
-
-    console.log(`  Registering community in the registry...`);
-    await registry.registerCommunity(chanceByCommunityInstance.address);
-
-    console.log('DONE migration');
-
+async function deployChanceBy(deployer, registryAddress) {
+    return await deployCommunity(deployer, 'ChanceBY', registryAddress);
 }
 
 function getKyberForNetwork(network, accounts) {
@@ -99,21 +60,38 @@ module.exports = async function (deployer, network, accounts) {
 
     console.log(`  === Deploying EthKids contracts to ${network}...`);
 
-    await deployer.deploy(EthKidsRegistry);
+    console.log(`  Deploying bonding vault...`);
+    await deployer.deploy(ExponentialDeflation);
+    const bondingFormulaInstance = await ExponentialDeflation.deployed();
+    console.log('EthKids, ExponentialDeflation: NEW ' + bondingFormulaInstance.address);
+    await deployer.deploy(BondingVault, tokenName, tokenSym, bondingFormulaInstance.address,
+        initialTokenMint, {value: initialValueFunding});
+    const bondingVaultInstance = await BondingVault.deployed();
+    console.log('EthKids, BondingVault: NEW ' + bondingVaultInstance.address);
+
+    console.log(`  Deploying EthKidsRegistry...`);
+    await deployer.deploy(EthKidsRegistry, bondingVaultInstance.address);
     registryInstance = await EthKidsRegistry.deployed();
+    await bondingVaultInstance.addWhitelistAdmin(registryInstance.address);
+    await bondingVaultInstance.setRegistry(registryInstance.address);
     console.log('EthKids, EthKidsRegistry: NEW ' + registryInstance.address);
 
     console.log(`  Deploying dedicated Kyber converter...`);
     const {kyberNetworkAddress, feeWallet, stableToken} = getKyberForNetwork(network, accounts)
     kyberConverterInstance = await deployer.deploy(KyberConverter, kyberNetworkAddress, feeWallet, stableToken);
     console.log('EthKids, KyberConverter: NEW ' + kyberConverterInstance.address);
-
     console.log(`  Registering converter in the registry...`);
     await registryInstance.registerCurrencyConverter(kyberConverterInstance.address);
 
-    chanceByCommunityInstance = await deployChanceBy(deployer);
+
+    ///////////////
+    // This is to run by a community leader
+    console.log(`  Deploying ChanceBy community...`);
+    chanceByCommunityInstance = await deployChanceBy(deployer, registryInstance.address);
+    console.log('EthKids, DonationCommunity: NEW ' + chanceByCommunityInstance.address);
+    ///////////////
+
     console.log(`  Registering community in the registry...`);
-    await chanceByCommunityInstance.addSigner(registryInstance.address);
     await registryInstance.registerCommunity(chanceByCommunityInstance.address);
 
     console.log('DONE migration');

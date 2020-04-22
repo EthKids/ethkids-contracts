@@ -2,7 +2,9 @@ pragma solidity ^0.5.2;
 
 import "openzeppelin-solidity/contracts/ownership/Secondary.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import "../contracts/kyber/ERC20Interface.sol";
+import "../kyber/ERC20Interface.sol";
+import "../RegistryAware.sol";
+import "../RegistryInterface.sol";
 
 /**
  * @title CharityVault
@@ -10,10 +12,11 @@ import "../contracts/kyber/ERC20Interface.sol";
  * them to the actual charity destination.
  * Deposit and withdrawal calls come only from the actual community contract
  */
-contract CharityVault is Secondary {
+contract CharityVault is RegistryAware, Secondary {
     using SafeMath for uint256;
 
     mapping(address => uint256) private deposits;
+    RegistryInterface public registry;
     CurrencyConverterInterface public currencyConverter;
     ERC20 public stableToken;
     uint256 public sumStats;
@@ -34,9 +37,14 @@ contract CharityVault is Secondary {
         //no 'payable' here
     }
 
-    function setCurrencyConverter(address _converter) public onlyPrimary {
-        currencyConverter = CurrencyConverterInterface(_converter);
+    function setRegistry(address _registry) public onlyPrimary {
+        registry = (RegistryInterface)(_registry);
+        currencyConverter = CurrencyConverterInterface(registry.getCurrencyConverter());
         stableToken = ERC20(currencyConverter.getStableToken());
+    }
+
+    function getRegistry() public view returns (RegistryInterface) {
+        return registry;
     }
 
     /**

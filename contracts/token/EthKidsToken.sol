@@ -4,12 +4,12 @@ import "openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20Detailed.sol";
 
 /**
- * @title CommunityToken
+ * @title EthKidsToken
  * @dev Standard ERC20, but with disabled 'transfer' function to prevent Sybil attack
  * Owner (or a 'minter') is a community contract, and it has some extra privileges,
  * like burning tokens for a given holder
  */
-contract CommunityToken is ERC20Mintable, ERC20Detailed {
+contract EthKidsToken is ERC20Mintable, ERC20Detailed {
 
     uint256 public smallestHolding = 10 ** 18;
 
