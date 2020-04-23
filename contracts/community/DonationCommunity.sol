@@ -70,6 +70,15 @@ contract DonationCommunity is IDonationCommunity, RegistryAware, WhitelistedRole
         return (_charityAllocation, _bondingAllocation);
     }
 
+    function myReward(uint256 _ethAmount) public view returns (uint256 tokenAmount) {
+        (uint256 _charityAllocation, uint256  _bondingAllocation) = allocate(_ethAmount);
+        return getRegistry().getBondingVault().calculateReward(_bondingAllocation, msg.sender);
+    }
+
+    function myReturn(uint256 _tokenAmount) public view returns (uint256 returnEth) {
+        return getRegistry().getBondingVault().calculateReturn(_tokenAmount, msg.sender);
+    }
+
     function donate() public payable {
         donateDelegated(msg.sender);
     }

@@ -47,26 +47,24 @@ contract('EthKids', async (accounts) => {
 
         assert.strictEqual((await registry.communityIndex.call()).toString(), "1");
 
-        community = await DonationCommunity.at(await registry.getCommunityAt(0));
-
-        bondingVault = await BondingVault.at(await community.bondingVault.call());
-
-        charityVault = await CharityVault.at(await community.charityVault.call());
-
-        token = await EthKidsToken.at(await community.getEthKidsToken());
+        bondingVault = await BondingVault.at(await registry.bondingVault.call());
 
         formula = await ExponentialDeflation.at(await bondingVault.bondingCurveFormula.call());
 
+        token = await EthKidsToken.at(await bondingVault.getEthKidsToken());
+
         assert.isTrue(await token.isMinter(bondingVault.address));
+
+        community = await DonationCommunity.at(await registry.getCommunityAt(0));
+
+        charityVault = await CharityVault.at(await community.charityVault.call());
 
         //replace the converter with the mock that uses another ERC as 'stable'
         stableToken = await ERC20Mintable.new();
         currencyConverter = await KyberConverterMock.new(empty_address, empty_address, stableToken.address);
-        //mint 100 directly to converter
+        //mint 100 directly to converter for liquidity
         await stableToken.mint(currencyConverter.address, web3.utils.toWei('100', 'ether'));
         await registry.registerCurrencyConverter(currencyConverter.address);
-        await registry.registerCommunityAt(community.address, 0);
-
     })
 
     it("should be able to donate", async () => {
@@ -152,7 +150,7 @@ contract('EthKids', async (accounts) => {
         console.log("(4) Donors comparison, return for small: " + readableETH(returnSmallDonor));
         console.log("(4) Donors comparison, return for big: " + readableETH(returnBigDonor));
 
-        let returnSmallDonorByOwner = (await community.returnForAddress(testTokenAmount, DONOR));
+        let returnSmallDonorByOwner = (await community.myReturn(testTokenAmount, {from: DONOR}));
         assert.strictEqual(returnSmallDonorByOwner.toString(), returnSmallDonor.toString());
     })
 
@@ -161,7 +159,7 @@ contract('EthKids', async (accounts) => {
         let donorTokenBalanceBefore = Number(await token.balanceOf(DONOR2));
         let bondingVaultBalanceBefore = Number(await web3.eth.getBalance(bondingVault.address));
         let returnBeforeSell = (await community.myReturn(web3.utils.toWei("150", "finney"), {from: DONOR2}));
-        await community.sell(web3.utils.toWei("150", "finney"), {from: DONOR2});//0.15 CHANCE
+        await bondingVault.sell(web3.utils.toWei("150", "finney"), {from: DONOR2});//0.15 CHANCE
 
         //personal ETH balance increased
         assert.isTrue(donorBalanceBefore < Number(await web3.eth.getBalance(DONOR2)));
@@ -195,30 +193,30 @@ contract('EthKids', async (accounts) => {
 
     it("should be able to sweep the bonding curve vault", async () => {
         //sell all
-        await community.sell(await token.balanceOf(DONOR), {from: DONOR});
-        await community.sell(await token.balanceOf(DONOR2), {from: DONOR2});
-        await community.sell(await token.balanceOf(DONOR3), {from: DONOR3});
+        await bondingVault.sell(await token.balanceOf(DONOR), {from: DONOR});
+        await bondingVault.sell(await token.balanceOf(DONOR2), {from: DONOR2});
+        await bondingVault.sell(await token.balanceOf(DONOR3), {from: DONOR3});
 
         assert.strictEqual((await token.totalSupply()).toString(), "1000000000000000000"); //1 CHANCE, initial one
         console.log("Vault after all sells: " + readableETH(await web3.eth.getBalance(bondingVault.address)));
 
         //bad guy can't
         try {
-            await community.sweepBondingVault({from: DONOR});
+            await registry.sweepVault({from: DONOR});
             assert.ok(false, 'not authorized!');
         } catch (error) {
             assert.ok(true, 'expected');
         }
 
-        await community.sweepBondingVault();
+        await registry.sweepVault();
         assert.isTrue(Number(await web3.eth.getBalance(bondingVault.address)) == 0);
     })
 
     it("should be able to add an extra community leader", async () => {
-        assert.strictEqual(await community.isSigner(EXTRA_OWNER), false);
+        assert.strictEqual(await community.isWhitelistAdmin(EXTRA_OWNER), false);
 
-        await community.addSigner(EXTRA_OWNER);
-        assert.strictEqual(await community.isSigner(EXTRA_OWNER), true);
+        await community.addWhitelistAdmin(EXTRA_OWNER);
+        assert.strictEqual(await community.isWhitelistAdmin(EXTRA_OWNER), true);
     })
 
     it("new community leader can pass to charity", async () => {
@@ -233,17 +231,8 @@ contract('EthKids', async (accounts) => {
     })
 
     it("new leader can renounce from community", async () => {
-        await community.renounceSigner({from: EXTRA_OWNER});
-        assert.strictEqual(await community.isSigner(EXTRA_OWNER), false);
-    })
-
-    it("can replace buy formula", async () => {
-        let oldFormula = await bondingVault.bondingCurveFormula.call();
-
-        let newFormula = await ExponentialDeflation.new();
-        await community.replaceFormula(newFormula.address);
-
-        assert.strictEqual(await bondingVault.bondingCurveFormula.call(), newFormula.address);
+        await community.renounceWhitelistAdmin({from: EXTRA_OWNER});
+        assert.strictEqual(await community.isWhitelistAdmin(EXTRA_OWNER), false);
     })
 
 })

@@ -1,6 +1,5 @@
 var ExponentialDeflation = artifacts.require("ExponentialDeflation");
 var BondingVault = artifacts.require("BondingVault");
-var CharityVault = artifacts.require("CharityVault");
 var DonationCommunity = artifacts.require("DonationCommunity");
 var EthKidsRegistry = artifacts.require("EthKidsRegistry");
 var KyberConverter = artifacts.require("KyberConverter");
@@ -9,7 +8,7 @@ const empty_address = '0x0000000000000000000000000000000000000000';
 const initialTokenMint = web3.utils.toWei("1", "ether"); //1 CHANCE, required for initial 'sell price' calculation
 const initialValueFunding = web3.utils.toWei("100", "finney"); //0.1 ETH, required for initial liquidation calculation
 const tokenName = 'Chance';
-const tokenSym = "CHANCE";
+const tokenSym = 'CHANCE';
 
 
 async function deployCommunity(deployer, name, registryAddress) {

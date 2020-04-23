@@ -17,8 +17,6 @@ contract CharityVault is RegistryAware, Secondary {
 
     mapping(address => uint256) private deposits;
     RegistryInterface public registry;
-    CurrencyConverterInterface public currencyConverter;
-    ERC20 public stableToken;
     uint256 public sumStats;
 
     event LogStableTokenReceived(
@@ -39,8 +37,6 @@ contract CharityVault is RegistryAware, Secondary {
 
     function setRegistry(address _registry) public onlyPrimary {
         registry = (RegistryInterface)(_registry);
-        currencyConverter = CurrencyConverterInterface(registry.getCurrencyConverter());
-        stableToken = ERC20(currencyConverter.getStableToken());
     }
 
     function getRegistry() public view returns (RegistryInterface) {
@@ -52,7 +48,7 @@ contract CharityVault is RegistryAware, Secondary {
      * @param _payee The destination address of the funds.
      */
     function deposit(address _payee) public onlyPrimary payable {
-        uint256 _amount = currencyConverter.executeSwapMyETHToStable.value(msg.value)();
+        uint256 _amount = currencyConverter().executeSwapMyETHToStable.value(msg.value)();
         deposits[_payee] = deposits[_payee].add(_amount);
         sumStats = sumStats.add(_amount);
         emit LogStableTokenReceived(_amount, _payee);
@@ -62,13 +58,21 @@ contract CharityVault is RegistryAware, Secondary {
      * @dev Withdraw some of accumulated balance for a _payee.
      */
     function withdraw(address payable _payee, uint256 _payment) public onlyPrimary {
-        require(_payment > 0 && stableToken.balanceOf(address(this)) >= _payment, "Insufficient funds in the charity fund");
-        stableToken.transfer(_payee, _payment);
+        require(_payment > 0 && stableToken().balanceOf(address(this)) >= _payment, "Insufficient funds in the charity fund");
+        stableToken().transfer(_payee, _payment);
         emit LogStableTokenSent(_payment, _payee);
     }
 
     function depositsOf(address payee) public view returns (uint256) {
         return deposits[payee];
+    }
+
+    function currencyConverter() internal view returns (CurrencyConverterInterface) {
+        return CurrencyConverterInterface(registry.getCurrencyConverter());
+    }
+
+    function stableToken() internal view returns (ERC20) {
+        return ERC20(currencyConverter().getStableToken());
     }
 }
 

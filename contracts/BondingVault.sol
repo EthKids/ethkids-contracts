@@ -46,6 +46,7 @@ contract BondingVault is BondingVaultInterface, RegistryAware, WhitelistedRole {
         token = new EthKidsToken(_tokenName, _tokenSymbol);
         token.mint(msg.sender, _initialMint);
         bondingCurveFormula = BondingCurveFormula(_formulaAddress);
+        emit LogEthReceived(msg.value, msg.sender);
     }
 
     function setRegistry(address _registry) public onlyWhitelistAdmin {
