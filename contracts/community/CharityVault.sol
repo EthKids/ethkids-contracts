@@ -2,7 +2,9 @@ pragma solidity ^0.5.2;
 
 import "openzeppelin-solidity/contracts/ownership/Secondary.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import "../contracts/kyber/ERC20Interface.sol";
+import "../kyber/ERC20Interface.sol";
+import "../RegistryAware.sol";
+import "../RegistryInterface.sol";
 
 /**
  * @title CharityVault
@@ -10,12 +12,11 @@ import "../contracts/kyber/ERC20Interface.sol";
  * them to the actual charity destination.
  * Deposit and withdrawal calls come only from the actual community contract
  */
-contract CharityVault is Secondary {
+contract CharityVault is RegistryAware, Secondary {
     using SafeMath for uint256;
 
     mapping(address => uint256) private deposits;
-    CurrencyConverterInterface public currencyConverter;
-    ERC20 public stableToken;
+    RegistryInterface public registry;
     uint256 public sumStats;
 
     event LogStableTokenReceived(
@@ -34,9 +35,12 @@ contract CharityVault is Secondary {
         //no 'payable' here
     }
 
-    function setCurrencyConverter(address _converter) public onlyPrimary {
-        currencyConverter = CurrencyConverterInterface(_converter);
-        stableToken = ERC20(currencyConverter.getStableToken());
+    function setRegistry(address _registry) public onlyPrimary {
+        registry = (RegistryInterface)(_registry);
+    }
+
+    function getRegistry() public view returns (RegistryInterface) {
+        return registry;
     }
 
     /**
@@ -44,7 +48,7 @@ contract CharityVault is Secondary {
      * @param _payee The destination address of the funds.
      */
     function deposit(address _payee) public onlyPrimary payable {
-        uint256 _amount = currencyConverter.executeSwapMyETHToStable.value(msg.value)();
+        uint256 _amount = currencyConverter().executeSwapMyETHToStable.value(msg.value)();
         deposits[_payee] = deposits[_payee].add(_amount);
         sumStats = sumStats.add(_amount);
         emit LogStableTokenReceived(_amount, _payee);
@@ -54,13 +58,21 @@ contract CharityVault is Secondary {
      * @dev Withdraw some of accumulated balance for a _payee.
      */
     function withdraw(address payable _payee, uint256 _payment) public onlyPrimary {
-        require(_payment > 0 && stableToken.balanceOf(address(this)) >= _payment, "Insufficient funds in the charity fund");
-        stableToken.transfer(_payee, _payment);
+        require(_payment > 0 && stableToken().balanceOf(address(this)) >= _payment, "Insufficient funds in the charity fund");
+        stableToken().transfer(_payee, _payment);
         emit LogStableTokenSent(_payment, _payee);
     }
 
     function depositsOf(address payee) public view returns (uint256) {
         return deposits[payee];
+    }
+
+    function currencyConverter() internal view returns (CurrencyConverterInterface) {
+        return CurrencyConverterInterface(registry.getCurrencyConverter());
+    }
+
+    function stableToken() internal view returns (ERC20) {
+        return ERC20(currencyConverter().getStableToken());
     }
 }
 

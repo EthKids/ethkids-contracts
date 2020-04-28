@@ -1,4 +1,3 @@
-var ExponentialV1 = artifacts.require("ExponentialV1");
 var ExponentialDeflation = artifacts.require("ExponentialDeflation");
 
 

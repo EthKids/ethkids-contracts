@@ -1,7 +1,7 @@
 {
   "name": "ethkids-contracts",
-  "version": "1.0.0",
-  "description": "EthKids: decentralized protocol for children's charity",
+  "version": "1.1.0",
+  "description": "EthKids: decentralized protocol for the charity for children",
   "main": "truffle-config.js",
   "directories": {
     "test": "test"
@@ -17,7 +17,7 @@
   "license": "ISC",
   "homepage": "https://github.com/EthKids/ethkids-ui",
   "dependencies": {
-    "openzeppelin-solidity": "^2.2.0",
+    "openzeppelin-solidity": "^2.5.0",
     "truffle-assertions": "^0.8.2",
     "truffle-hdwallet-provider": "^1.0.8"
   }
