@@ -99,6 +99,22 @@ contract DonationCommunity is IDonationCommunity, RegistryAware, WhitelistedRole
         emit LogDonationReceived(_donor, msg.value);
     }
 
+    /**
+    * @dev Donate funds on behalf of someone else without award.
+    * @param _donor address that will be recorded as a donor
+    **/
+    function donateDelegatedNoAward(address payable _donor) public payable {
+        require(msg.value > 0, "Must include some ETH to donate");
+
+        (uint256 _charityAllocation, uint256  _bondingAllocation) = allocate(msg.value);
+        charityVault.deposit.value(_charityAllocation)(_donor);
+
+        address payable bondingVaultPayable = address(uint160(address(getRegistry().getBondingVault())));
+        bondingVaultPayable.send(_bondingAllocation);
+
+        emit LogDonationReceived(_donor, msg.value);
+    }
+
     function passToCharity(uint256 _amount, address payable _intermediary, string memory _ipfsHash) public onlyWhitelistAdmin {
         require(_intermediary != address(0));
         charityVault.withdraw(_intermediary, _amount);
