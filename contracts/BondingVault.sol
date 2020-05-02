@@ -100,7 +100,7 @@ contract BondingVault is BondingVaultInterface, RegistryAware, WhitelistedRole {
             //first donation, offer best market price
             _tokenBalance = token.smallestHolding();
         }
-        return bondingCurveFormula.calculatePurchaseReturn(_tokenSupply, _tokenBalance, address(this).balance, _ethAmount);
+        return bondingCurveFormula.calculatePurchaseReturn(_tokenSupply, _tokenBalance, address(this).balance.sub(_ethAmount), _ethAmount);
     }
 
     function calculateReturn(uint256 _tokenAmount, address payable _donor) public
