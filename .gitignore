@@ -32,3 +32,4 @@ yarn-error.log*
 
 # Compiled Solidity
 /build/contracts/
+/package-lock.json

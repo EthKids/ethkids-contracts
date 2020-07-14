@@ -2,7 +2,7 @@ pragma solidity ^0.5.2;
 
 import "openzeppelin-solidity/contracts/ownership/Secondary.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import "../kyber/ERC20Interface.sol";
+import "../ERC20.sol";
 import "../RegistryAware.sol";
 import "../RegistryInterface.sol";
 

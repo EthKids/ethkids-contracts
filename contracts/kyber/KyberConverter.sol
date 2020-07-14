@@ -2,9 +2,9 @@ pragma solidity ^0.5.2;
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import "../contracts/kyber/KyberNetworkProxyInterface.sol";
-import "../contracts/kyber/ERC20Interface.sol";
-import "../contracts/community/IDonationCommunity.sol";
+import "./KyberNetworkProxyInterface.sol";
+import "../ERC20.sol";
+import "../community/IDonationCommunity.sol";
 
 contract KyberConverter is Ownable {
     using SafeMath for uint256;
@@ -101,7 +101,7 @@ contract KyberConverter is Ownable {
             hint
         );
 
-        // Clean kyber to use _srcTokens on belhalf of this contract
+        // Clean kyber to use _srcTokens on behalf of this contract
         require(
             srcToken.approve(address(kyberNetworkProxyContract), 0),
             "Could not clear approval of kyber to use srcToken on behalf of this contract"
@@ -149,6 +149,11 @@ contract KyberConverter is Ownable {
             walletId,
             hint
         );
+        // Return the change of ETH if any
+        uint256 change = address(this).balance;
+        if (change > 0) {
+            address(msg.sender).transfer(change);
+        }
         // Log the event
         emit Swap(msg.sender, ETH_TOKEN_ADDRESS, stableToken);
 
