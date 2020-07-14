@@ -1,6 +1,7 @@
 pragma solidity ^0.5.2;
 
 import "openzeppelin-solidity/contracts/access/roles/SignerRole.sol";
+import "openzeppelin-solidity/contracts/utils/EnumerableSet.sol";
 import "./RegistryInterface.sol";
 import "./RegistryAware.sol";
 import "./BondingVaultInterface.sol";
@@ -12,13 +13,13 @@ import "./community/IDonationCommunity.sol";
  */
 contract EthKidsRegistry is RegistryInterface, SignerRole {
 
-    BondingVaultInterface public bondingVault;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
-    uint256 public communityIndex = 0;
-    mapping(uint256 => IDonationCommunity) public communities;
+    BondingVaultInterface public bondingVault;
+    EnumerableSet.AddressSet private communities;
     address public currencyConverter;
 
-    event CommunityRegistered(address communityAddress, uint256 index);
+    event CommunityRegistered(address communityAddress);
 
     /**
     * @dev Default fallback function, just deposits funds to the community
@@ -33,32 +34,27 @@ contract EthKidsRegistry is RegistryInterface, SignerRole {
     }
 
     function registerCommunity(address _communityAddress) onlySigner public {
-        registerCommunityAt(_communityAddress, communityIndex);
-        communityIndex++;
-    }
-
-    /**
-    * @dev Make sure the community has address(this) as one of _signers in order to set registry instance
-    **/
-    function registerCommunityAt(address _communityAddress, uint256 index) onlySigner public {
-        communities[index] = IDonationCommunity(_communityAddress);
+        require(communities.add(_communityAddress), 'This community is already present!');
         ((RegistryAware)(_communityAddress)).setRegistry(address(this));
         bondingVault.addWhitelisted(_communityAddress);
-        emit CommunityRegistered(_communityAddress, index);
+        emit CommunityRegistered(_communityAddress);
     }
 
     function registerCurrencyConverter(address _currencyConverter) onlySigner public {
         currencyConverter = _currencyConverter;
     }
 
-    function removeCommunity(uint256 _index) onlySigner public {
-        bondingVault.removeWhitelisted(address(communities[_index]));
-        communities[_index] = IDonationCommunity(address(0));
+    function removeCommunity(address _address) onlySigner public {
+        bondingVault.removeWhitelisted(_address);
+        communities.remove(_address);
     }
 
     function getCommunityAt(uint256 _index) public view returns (IDonationCommunity community) {
-        require(communities[_index] != IDonationCommunity(address(0)), "No such community exists");
-        return communities[_index];
+        return IDonationCommunity(communities.get(_index));
+    }
+
+    function communityCount() public view returns (uint256) {
+        return communities.length();
     }
 
     function sweepVault() public onlySigner {

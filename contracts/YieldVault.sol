@@ -4,6 +4,7 @@ import "openzeppelin-solidity/contracts/access/roles/WhitelistedRole.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "./aave/IAToken.sol";
 import "./RegistryAware.sol";
+import "./community/IDonationCommunity.sol";
 import "./ERC20.sol";
 
 contract YieldVault is RegistryAware, WhitelistedRole {
@@ -29,7 +30,9 @@ contract YieldVault is RegistryAware, WhitelistedRole {
     * Usually called from the CharityVault
     **/
     function withdraw(address _token, address _atoken, uint _amount) public onlyWhitelisted {
-        address _user = msg.sender;
+        address user = msg.sender;
+
+        //uint maxAvailable = balance(_atoken)/registry()
 
         //if not used as a collateral
         IAToken aToken = IAToken(_atoken);
@@ -38,7 +41,7 @@ contract YieldVault is RegistryAware, WhitelistedRole {
         withdrawalBacklog[_atoken] = withdrawalBacklog[_atoken].add(_amount);
 
         // return erc we have to the sender
-        ERC20(_token).transfer(_user, _amount);
+        ERC20(_token).transfer(user, _amount);
     }
 
     function setRegistry(address _registry) public onlyWhitelistAdmin {
