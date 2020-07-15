@@ -4,17 +4,21 @@ import "openzeppelin-solidity/contracts/access/roles/WhitelistedRole.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "./aave/IAToken.sol";
 import "./RegistryAware.sol";
-import "./community/IDonationCommunity.sol";
 import "./ERC20.sol";
+import "./YieldVaultInterface.sol";
 
-contract YieldVault is RegistryAware, WhitelistedRole {
+contract YieldVault is YieldVaultInterface, RegistryAware, WhitelistedRole {
 
     using SafeMath for uint256;
     RegistryInterface public registry;
     mapping(address => uint256) public withdrawalBacklog;
 
-    constructor (address _registry) public {
-        setRegistry(_registry);
+    address public DAI_ADDRESS;
+    address public ADAI_ADDRESS;
+
+    constructor (address _adai, address _dai) public {
+        ADAI_ADDRESS = _adai;
+        DAI_ADDRESS = _dai;
     }
 
     function balance(address _atoken) public view returns (uint256) {
@@ -25,23 +29,40 @@ contract YieldVault is RegistryAware, WhitelistedRole {
         return balance(_atoken).add(withdrawalBacklog[_atoken]);
     }
 
+    function communityVaultBalance(address _atoken) public view returns (uint256) {
+        return balance(_atoken) / registry.communityCount();
+    }
+
+    function withdrawAllDai() public onlyWhitelisted {
+        withdraw(DAI_ADDRESS, ADAI_ADDRESS, 0);
+    }
+
     /**
-    * @dev Msg.sender triggers the withdrawal from Aave, the DAI will be moved to the caller
-    * Usually called from the CharityVault
+    * @dev Community triggers the withdrawal from Aave.
+    * All aTokens (x communityCount) will be redeemed and the resulting ERC will be distributed among the communities
+    * _amount = 0 means 'ALL'
     **/
     function withdraw(address _token, address _atoken, uint _amount) public onlyWhitelisted {
-        address user = msg.sender;
+        if (_amount == 0) {
+            //all available
+            _amount = communityVaultBalance(_atoken);
+        } else {
+            require(communityVaultBalance(_atoken) >= _amount);
+        }
 
-        //uint maxAvailable = balance(_atoken)/registry()
+        if (_amount > 0) {
+            uint totalAmount = _amount.mul(registry.communityCount());
+            IAToken aToken = IAToken(_atoken);
+            //if not used as a collateral
+            require(aToken.isTransferAllowed(address(this), totalAmount));
+            aToken.redeem(totalAmount);
+            withdrawalBacklog[_atoken] = withdrawalBacklog[_atoken].add(totalAmount);
 
-        //if not used as a collateral
-        IAToken aToken = IAToken(_atoken);
-        require(aToken.isTransferAllowed(address(this), _amount));
-        aToken.redeem(_amount);
-        withdrawalBacklog[_atoken] = withdrawalBacklog[_atoken].add(_amount);
-
-        // return erc we have to the sender
-        ERC20(_token).transfer(user, _amount);
+            //distribute over all communities
+            for (uint8 i = 0; i < registry.communityCount(); i++) {
+                ERC20(_token).transfer(registry.getCharityVaults()[i], _amount);
+            }
+        }
     }
 
     function setRegistry(address _registry) public onlyWhitelistAdmin {

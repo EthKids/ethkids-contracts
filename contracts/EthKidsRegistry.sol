@@ -2,9 +2,11 @@ pragma solidity ^0.5.2;
 
 import "openzeppelin-solidity/contracts/access/roles/SignerRole.sol";
 import "openzeppelin-solidity/contracts/utils/EnumerableSet.sol";
+import "openzeppelin-solidity/contracts/utils/Address.sol";
 import "./RegistryInterface.sol";
 import "./RegistryAware.sol";
 import "./BondingVaultInterface.sol";
+import "./YieldVaultInterface.sol";
 import "./community/IDonationCommunity.sol";
 
 /**
@@ -14,8 +16,10 @@ import "./community/IDonationCommunity.sol";
 contract EthKidsRegistry is RegistryInterface, SignerRole {
 
     using EnumerableSet for EnumerableSet.AddressSet;
+    using Address for address;
 
     BondingVaultInterface public bondingVault;
+    YieldVaultInterface public yieldVault;
     EnumerableSet.AddressSet private communities;
     address public currencyConverter;
 
@@ -25,18 +29,21 @@ contract EthKidsRegistry is RegistryInterface, SignerRole {
     * @dev Default fallback function, just deposits funds to the community
     */
     function() external payable {
-        ((address) (bondingVault)).call.value(msg.value)("");
+        address(bondingVault).toPayable().transfer(msg.value);
     }
 
-    constructor (address payable _bondingVaultAddress) public {
+    constructor (address payable _bondingVaultAddress, address _yieldVault) public {
         require(_bondingVaultAddress != address(0));
         bondingVault = BondingVaultInterface(_bondingVaultAddress);
+        require(_yieldVault != address(0));
+        yieldVault = YieldVaultInterface(_yieldVault);
     }
 
     function registerCommunity(address _communityAddress) onlySigner public {
         require(communities.add(_communityAddress), 'This community is already present!');
         ((RegistryAware)(_communityAddress)).setRegistry(address(this));
         bondingVault.addWhitelisted(_communityAddress);
+        yieldVault.addWhitelisted(_communityAddress);
         emit CommunityRegistered(_communityAddress);
     }
 
@@ -46,6 +53,7 @@ contract EthKidsRegistry is RegistryInterface, SignerRole {
 
     function removeCommunity(address _address) onlySigner public {
         bondingVault.removeWhitelisted(_address);
+        yieldVault.removeWhitelisted(_address);
         communities.remove(_address);
     }
 
@@ -67,6 +75,14 @@ contract EthKidsRegistry is RegistryInterface, SignerRole {
 
     function getBondingVault() public view returns (BondingVaultInterface) {
         return bondingVault;
+    }
+
+    function getCharityVaults() public view returns (address[] memory) {
+        address[] memory result = communities.enumerate();
+        for (uint8 i = 0; i < result.length; i++) {
+            result[i] = IDonationCommunity(result[i]).charityVault();
+        }
+        return result;
     }
 
 
