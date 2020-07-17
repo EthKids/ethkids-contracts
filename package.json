@@ -17,8 +17,8 @@
   "license": "ISC",
   "homepage": "https://github.com/EthKids/ethkids-ui",
   "dependencies": {
+    "@truffle/hdwallet-provider": "^1.0.38",
     "openzeppelin-solidity": "^2.5.0",
-    "truffle-assertions": "^0.8.2",
-    "truffle-hdwallet-provider": "^1.0.8"
+    "truffle-assertions": "^0.8.2"
   }
 }

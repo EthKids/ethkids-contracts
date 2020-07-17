@@ -110,14 +110,18 @@ contract DonationCommunity is IDonationCommunity, RegistryAware, WhitelistedRole
         charityVault.deposit.value(_charityAllocation)(_donor);
 
         address payable bondingVaultPayable = address(uint160(address(getRegistry().getBondingVault())));
-        bondingVaultPayable.send(_bondingAllocation);
+        bondingVaultPayable.transfer(_bondingAllocation);
 
         emit LogDonationReceived(_donor, msg.value);
     }
 
     function passToCharity(uint256 _amount, address payable _intermediary, string memory _ipfsHash) public onlyWhitelistAdmin {
+        //distribute accumulated DAI amongs the communities
+        registry.yieldVault().withdrawAllDai();
+
         require(_intermediary != address(0));
         charityVault.withdraw(_intermediary, _amount);
+
         emit LogPassToCharity(msg.sender, _intermediary, _amount, _ipfsHash);
     }
 

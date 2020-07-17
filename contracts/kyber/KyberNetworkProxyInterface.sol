@@ -1,6 +1,6 @@
 pragma solidity ^0.5.2;
 
-import "./ERC20Interface.sol";
+import "../ERC20.sol";
 
 interface KyberNetworkProxyInterface {
     function maxGasPrice() external view returns (uint);

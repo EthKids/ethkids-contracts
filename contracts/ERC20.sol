@@ -1,7 +1,5 @@
 pragma solidity ^0.5.2;
 
-
-// https://github.com/ethereum/EIPs/issues/20
 interface ERC20 {
     function totalSupply() external view returns (uint supply);
 

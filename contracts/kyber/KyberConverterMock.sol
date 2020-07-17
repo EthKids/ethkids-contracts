@@ -1,6 +1,6 @@
 pragma solidity ^0.5.2;
 
-import "../KyberConverter.sol";
+import "./KyberConverter.sol";
 
 /**
  * @title KyberConverterMock
