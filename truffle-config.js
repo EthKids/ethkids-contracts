@@ -53,6 +53,7 @@ module.exports = {
             port: 7545,            // Standard Ethereum port (default: none)
             network_id: "*",       // Any network (default: none)
             gas: 6550000,
+            gasPrice: 90000000000, //90 Gwei
         },
 
         // Another network with more advanced options...
@@ -87,7 +88,7 @@ module.exports = {
         },
         live: {
             provider: () => new HDWalletProvider(mnemonicMain, `https://mainnet.infura.io/v3/${infuraKey}`),
-            gasPrice: 4000000000, //4Gwei
+            gasPrice: 110000000000, //110 Gwei
             network_id: 1,
             confirmations: 2,
             timeoutBlocks: 200,  // # of blocks before a deployment times out  (minimum/default: 50)
@@ -97,6 +98,7 @@ module.exports = {
 
     // Set default mocha options here, use special reporters etc.
     mocha: {
+        reporter: 'eth-gas-reporter',
         // timeout: 100000
     },
 

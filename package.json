@@ -20,5 +20,8 @@
     "@truffle/hdwallet-provider": "^1.0.38",
     "openzeppelin-solidity": "^2.5.0",
     "truffle-assertions": "^0.8.2"
+  },
+  "devDependencies": {
+    "eth-gas-reporter": "^0.2.17"
   }
 }
