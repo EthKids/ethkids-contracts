@@ -79,6 +79,7 @@ module.exports = {
         },
         ropsten: {
             provider: () => new HDWalletProvider(mnemonicRinkeby, `https://ropsten.infura.io/v3/${infuraKey}`),
+            gasPrice: 60000000000, //60Gwei
             network_id: 3,
             gas: 6550000,
             confirmations: 0,    // # of confs to wait between deployments. (default: 0)

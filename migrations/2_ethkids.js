@@ -20,10 +20,6 @@ async function deployCommunity(deployer, name, registryAddress) {
     return communityInstance;
 }
 
-async function deployChanceBy(deployer, registryAddress) {
-    return await deployCommunity(deployer, 'ChanceBY', registryAddress);
-}
-
 function getKyberForNetwork(network, accounts) {
     if (network == 'development') {
         return {
@@ -59,7 +55,6 @@ function getKyberForNetwork(network, accounts) {
 
 module.exports = async function (deployer, network, accounts) {
 
-    let chanceByCommunityInstance;
     let registryInstance;
     let kyberConverterInstance;
 
@@ -104,13 +99,13 @@ module.exports = async function (deployer, network, accounts) {
 
     ///////////////
     // This is to run by a community leader
-    console.log(`  Deploying ChanceBy community...`);
-    chanceByCommunityInstance = await deployChanceBy(deployer, registryInstance.address);
-    console.log('EthKids, DonationCommunity: NEW ' + chanceByCommunityInstance.address);
+    console.log(`  Deploying a community...`);
+    let communityInstance = await deployCommunity(deployer, 'ChanceBY', registryInstance.address);
+    console.log('EthKids, DonationCommunity: NEW ' + communityInstance.address);
     ///////////////
 
     console.log(`  Registering community in the registry...`);
-    await registryInstance.registerCommunity(chanceByCommunityInstance.address);
+    await registryInstance.registerCommunity(communityInstance.address);
 
     console.log('DONE migration');
 }
