@@ -100,12 +100,15 @@ module.exports = async function (deployer, network, accounts) {
     ///////////////
     // This is to run by a community leader
     console.log(`  Deploying a community...`);
-    let communityInstance = await deployCommunity(deployer, 'ChanceBY', registryInstance.address);
-    console.log('EthKids, DonationCommunity: NEW ' + communityInstance.address);
+    let communityInstance1 = await deployCommunity(deployer, 'ChanceBY', registryInstance.address);
+    console.log('EthKids, DonationCommunity: NEW ' + communityInstance1.address);
+    let communityInstance2 = await deployCommunity(deployer, 'Kika', registryInstance.address);
+    console.log('EthKids, DonationCommunity: NEW ' + communityInstance2.address);
     ///////////////
 
-    console.log(`  Registering community in the registry...`);
-    await registryInstance.registerCommunity(communityInstance.address);
+    console.log(`  Registering communities in the registry...`);
+    await registryInstance.registerCommunity(communityInstance1.address);
+    await registryInstance.registerCommunity(communityInstance2.address);
 
     console.log('DONE migration');
 }
