@@ -15,9 +15,8 @@ import "../RegistryInterface.sol";
 contract CharityVault is RegistryAware, Secondary {
     using SafeMath for uint256;
 
-    mapping(address => uint256) private deposits;
     RegistryInterface public registry;
-    uint256 public sumStats;
+    uint256 public sumErcStats;
 
     event LogStableTokenReceived(
         uint256 amount,
@@ -49,8 +48,7 @@ contract CharityVault is RegistryAware, Secondary {
      */
     function deposit(address _payee) public onlyPrimary payable {
         uint256 _amount = currencyConverter().executeSwapMyETHToStable.value(msg.value)();
-        deposits[_payee] = deposits[_payee].add(_amount);
-        sumStats = sumStats.add(_amount);
+        sumErcStats = sumErcStats.add(_amount);
         emit LogStableTokenReceived(_amount, _payee);
     }
 
@@ -61,10 +59,6 @@ contract CharityVault is RegistryAware, Secondary {
         require(_payment > 0 && stableToken().balanceOf(address(this)) >= _payment, "Insufficient funds in the charity fund");
         stableToken().transfer(_payee, _payment);
         emit LogStableTokenSent(_payment, _payee);
-    }
-
-    function depositsOf(address payee) public view returns (uint256) {
-        return deposits[payee];
     }
 
     function currencyConverter() internal view returns (CurrencyConverterInterface) {

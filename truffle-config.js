@@ -53,7 +53,7 @@ module.exports = {
             port: 7545,            // Standard Ethereum port (default: none)
             network_id: "*",       // Any network (default: none)
             gas: 6550000,
-            gasPrice: 90000000000, //90 Gwei
+            gasPrice: 100000000000, //100Gwei
         },
 
         // Another network with more advanced options...
@@ -70,7 +70,7 @@ module.exports = {
         // NB: It's important to wrap the provider as a function.
         rinkeby: {
             provider: () => new HDWalletProvider(mnemonicRinkeby, `https://rinkeby.infura.io/v3/${infuraKey}`),
-            gasPrice: 60000000000, //60Gwei
+            gasPrice: 100000000000, //100Gwei
             network_id: 4,       // Rinkeby's id
             gas: 6550000,
             confirmations: 0,    // # of confs to wait between deployments. (default: 0)
