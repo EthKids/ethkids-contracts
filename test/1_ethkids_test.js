@@ -45,7 +45,7 @@ contract('EthKids', async (accounts) => {
 
         registry = await EthKidsRegistry.deployed();
 
-        assert.strictEqual((await registry.communityCount.call()).toString(), "1");
+        assert.strictEqual((await registry.communityCount.call()).toString(), "2");
 
         bondingVault = await BondingVault.at(await registry.bondingVault.call());
 
@@ -83,7 +83,7 @@ contract('EthKids', async (accounts) => {
         let charityAfter = (await stableToken.balanceOf(charityVault.address)).toString();
         assert.strictEqual(charityAfter, web3.utils.toWei("90", "finney"));
         //global stats
-        let globalStats = (await charityVault.sumErcStats.call()).toString();
+        let globalStats = (await charityVault.sumStats.call()).toString();
         assert.strictEqual(globalStats, web3.utils.toWei("90", "finney"));
 
 
@@ -109,9 +109,9 @@ contract('EthKids', async (accounts) => {
 
         //charity fund
         let charityAfter = (await stableToken.balanceOf(charityVault.address)).toString();
-        assert.strictEqual(charityAfter, web3.utils.toWei("270", "finney"));§
+        assert.strictEqual(charityAfter, web3.utils.toWei("270", "finney"));
         //global stats
-        let globalStats = (await charityVault.sumErcStats.call()).toString();
+        let globalStats = (await charityVault.sumStats.call()).toString();
         assert.strictEqual(globalStats, web3.utils.toWei("270", "finney"));
 
 

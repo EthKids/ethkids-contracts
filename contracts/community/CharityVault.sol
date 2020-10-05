@@ -16,7 +16,7 @@ contract CharityVault is RegistryAware, Secondary {
     using SafeMath for uint256;
 
     RegistryInterface public registry;
-    uint256 public sumErcStats;
+    uint256 public sumStats;
 
     event LogStableTokenReceived(
         uint256 amount,
@@ -48,7 +48,7 @@ contract CharityVault is RegistryAware, Secondary {
      */
     function deposit(address _payee) public onlyPrimary payable {
         uint256 _amount = currencyConverter().executeSwapMyETHToStable.value(msg.value)();
-        sumErcStats = sumErcStats.add(_amount);
+        sumStats = sumStats.add(_amount);
         emit LogStableTokenReceived(_amount, _payee);
     }
 
