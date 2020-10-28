@@ -2,7 +2,7 @@ pragma solidity ^0.5.2;
 
 interface BondingVaultInterface {
 
-    function fundWithAward(address payable _donor) external payable;
+    function fundWithReward(address payable _donor) external payable;
 
     function getEthKidsToken() external view returns (address);
 

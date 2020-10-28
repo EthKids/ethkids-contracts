@@ -53,7 +53,7 @@ module.exports = {
             port: 7545,            // Standard Ethereum port (default: none)
             network_id: "*",       // Any network (default: none)
             gas: 6550000,
-            gasPrice: 60000000000, //60Gwei
+            gasPrice: 30000000000, //30Gwei
         },
 
         // Another network with more advanced options...
@@ -79,7 +79,7 @@ module.exports = {
         },
         ropsten: {
             provider: () => new HDWalletProvider(mnemonicRinkeby, `https://ropsten.infura.io/v3/${infuraKey}`),
-            gasPrice: 60000000000, //60Gwei
+            gasPrice: 6000000000, //6Gwei
             network_id: 3,
             gas: 6550000,
             confirmations: 0,    // # of confs to wait between deployments. (default: 0)

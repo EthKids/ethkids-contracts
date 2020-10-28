@@ -5,20 +5,21 @@ import "./KyberConverter.sol";
 /**
  * @title KyberConverterMock
  * @dev The dummy mostly for test to mock the actual Kyber swap
- * It swaps the ETH to 'stable' 1:1, keeping the ETH and giving back owned 'stable' ERC
+ * It swaps the ETH to ERC 1:1, keeping the ETH and giving back owned ERC
  *
  */
 contract KyberConverterMock is KyberConverter {
 
-    constructor (KyberNetworkProxyInterface _kyberNetworkProxyContract, address _walletId, address _stableAddress)
-    KyberConverter(_kyberNetworkProxyContract, _walletId, _stableAddress) public {}
+    constructor (KyberNetworkProxyInterface _kyberNetworkProxyContract, address _walletId)
+    KyberConverter(_kyberNetworkProxyContract, _walletId) public {}
 
     /**
-    * @dev Simplified swap: converter with hold the 'source' ETH and send back 1:1 owned 'stable' token
+    * @dev Simplified swap: converter with hold the 'source' ETH and send back 1:1 owned erc20 token
     */
-    function executeSwapMyETHToStable() public payable returns (uint256) {
+    function executeSwapMyETHToERC(address _ercAddress) public payable returns (uint256) {
         address payable destAddress = msg.sender;
-        stableToken.transfer(msg.sender, msg.value);
+        ERC20 ercToken = ERC20(_ercAddress);
+        ercToken.transfer(msg.sender, msg.value);
         return msg.value;
     }
 

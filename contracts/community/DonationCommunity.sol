@@ -94,16 +94,16 @@ contract DonationCommunity is IDonationCommunity, RegistryAware, WhitelistedRole
         (uint256 _charityAllocation, uint256  _bondingAllocation) = allocate(msg.value);
         charityVault.deposit.value(_charityAllocation)(_donor);
 
-        getRegistry().getBondingVault().fundWithAward.value(_bondingAllocation)(_donor);
+        getRegistry().getBondingVault().fundWithReward.value(_bondingAllocation)(_donor);
 
         emit LogDonationReceived(_donor, msg.value);
     }
 
     /**
-    * @dev Donate funds on behalf of someone else without award.
+    * @dev Donate funds on behalf of someone else without being rewarded.
     * @param _donor address that will be recorded as a donor
     **/
-    function donateDelegatedNoAward(address payable _donor) public payable {
+    function donateDelegatedNoReward(address payable _donor) public payable {
         require(msg.value > 0, "Must include some ETH to donate");
 
         (uint256 _charityAllocation, uint256  _bondingAllocation) = allocate(msg.value);
@@ -116,8 +116,8 @@ contract DonationCommunity is IDonationCommunity, RegistryAware, WhitelistedRole
     }
 
     function passToCharity(uint256 _amount, address payable _intermediary, string memory _ipfsHash) public onlyWhitelistAdmin {
-        //distribute accumulated DAI amongs the communities
-        registry.yieldVault().withdrawAllDai();
+        //distribute accumulated interest amongst the communities
+        //registry.yieldVault().withdrawAllDai();
 
         require(_intermediary != address(0));
         charityVault.withdraw(_intermediary, _amount);

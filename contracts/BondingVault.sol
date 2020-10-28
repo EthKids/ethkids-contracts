@@ -58,10 +58,10 @@ contract BondingVault is BondingVaultInterface, RegistryAware, WhitelistedRole {
     }
 
     /**
-    * @dev Receives ETH and mints the token in return
+    * @dev Receives ETH and mints the rewarding token in return
     * Can be called by a community only (i.e. via a 'donation' action)
     */
-    function fundWithAward(address payable _donor) public payable onlyWhitelisted {
+    function fundWithReward(address payable _donor) public payable onlyWhitelisted {
         uint256 _tokenAmount = calculateReward(msg.value, _donor);
 
         token.mint(_donor, _tokenAmount);

@@ -13,14 +13,6 @@ contract YieldVault is YieldVaultInterface, RegistryAware, WhitelistedRole {
     RegistryInterface public registry;
     mapping(address => uint256) public withdrawalBacklog;
 
-    address public DAI_ADDRESS;
-    address public ADAI_ADDRESS;
-
-    constructor (address _adai, address _dai) public {
-        ADAI_ADDRESS = _adai;
-        DAI_ADDRESS = _dai;
-    }
-
     function balance(address _atoken) public view returns (uint256) {
         return IAToken(_atoken).balanceOf(address(this));
     }
@@ -33,10 +25,6 @@ contract YieldVault is YieldVaultInterface, RegistryAware, WhitelistedRole {
         return balance(_atoken) / registry.communityCount();
     }
 
-    function withdrawAllDai() public onlyWhitelisted {
-        withdraw(DAI_ADDRESS, ADAI_ADDRESS, 0);
-    }
-
     /**
     * @dev Community triggers the withdrawal from Aave.
     * All aTokens (x communityCount) will be redeemed and the resulting ERC will be distributed among the communities
@@ -44,7 +32,7 @@ contract YieldVault is YieldVaultInterface, RegistryAware, WhitelistedRole {
     **/
     function withdraw(address _token, address _atoken, uint _amount) public onlyWhitelisted {
         if (_amount == 0) {
-            //all available
+            //withdraw all available
             _amount = communityVaultBalance(_atoken);
         } else {
             require(communityVaultBalance(_atoken) >= _amount);
@@ -65,6 +53,10 @@ contract YieldVault is YieldVaultInterface, RegistryAware, WhitelistedRole {
         }
     }
 
+    function currencyConverter() internal view returns (CurrencyConverterInterface) {
+        return CurrencyConverterInterface(getRegistry().getCurrencyConverter());
+    }
+
     function setRegistry(address _registry) public onlyWhitelistAdmin {
         registry = (RegistryInterface)(_registry);
     }
@@ -73,4 +65,8 @@ contract YieldVault is YieldVaultInterface, RegistryAware, WhitelistedRole {
         return registry;
     }
 
+}
+
+interface CurrencyConverterInterface {
+    function executeSwapMyETHToERC() external payable returns (uint256);
 }

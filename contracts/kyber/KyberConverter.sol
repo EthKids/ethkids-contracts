@@ -13,8 +13,6 @@ contract KyberConverter is Ownable {
     KyberNetworkProxyInterface public kyberNetworkProxyContract;
     address public walletId;
 
-    ERC20 public stableToken;
-
     // Events
     event Swap(address indexed sender, ERC20 srcToken, ERC20 destToken);
 
@@ -24,18 +22,9 @@ contract KyberConverter is Ownable {
     function() external payable {
     }
 
-    constructor (KyberNetworkProxyInterface _kyberNetworkProxyContract, address _walletId, address _stableAddress) public {
+    constructor (KyberNetworkProxyInterface _kyberNetworkProxyContract, address _walletId) public {
         kyberNetworkProxyContract = _kyberNetworkProxyContract;
         walletId = _walletId;
-        stableToken = ERC20(_stableAddress);
-    }
-
-    function setStableToken(address _stableAddress) public onlyOwner {
-        stableToken = ERC20(_stableAddress);
-    }
-
-    function getStableToken() public view returns (address) {
-        return address(stableToken);
     }
 
     /**
@@ -125,14 +114,14 @@ contract KyberConverter is Ownable {
         emit Swap(msg.sender, srcToken, ETH_TOKEN_ADDRESS);
     }
 
-    function executeSwapMyETHToStable(
-    ) public payable returns (uint256) {
+    function executeSwapMyETHToERC(address _ercAddress) public payable returns (uint256) {
         uint minConversionRate;
         uint srcQty = msg.value;
         address destAddress = msg.sender;
+        ERC20 ercToken = ERC20(_ercAddress);
 
         // Get the minimum conversion rate
-        (minConversionRate,) = kyberNetworkProxyContract.getExpectedRate(ETH_TOKEN_ADDRESS, stableToken, srcQty);
+        (minConversionRate,) = kyberNetworkProxyContract.getExpectedRate(ETH_TOKEN_ADDRESS, ercToken, srcQty);
 
         uint maxDestAmount = srcQty.mul(minConversionRate).mul(105).div(100);
         // 5%
@@ -142,7 +131,7 @@ contract KyberConverter is Ownable {
         uint256 amount = kyberNetworkProxyContract.tradeWithHint.value(srcQty)(
             ETH_TOKEN_ADDRESS,
             srcQty,
-            stableToken,
+            ercToken,
             destAddress,
             maxDestAmount,
             minConversionRate,
@@ -155,7 +144,7 @@ contract KyberConverter is Ownable {
             address(msg.sender).transfer(change);
         }
         // Log the event
-        emit Swap(msg.sender, ETH_TOKEN_ADDRESS, stableToken);
+        emit Swap(msg.sender, ETH_TOKEN_ADDRESS, ercToken);
 
         return amount;
     }
