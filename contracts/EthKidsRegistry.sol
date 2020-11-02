@@ -69,6 +69,10 @@ contract EthKidsRegistry is RegistryInterface, SignerRole {
         bondingVault.sweepVault(msg.sender);
     }
 
+    function distributeYieldVault(address _token, address _atoken, uint _amount) public onlySigner {
+        yieldVault.withdraw(_token, _atoken, _amount);
+    }
+
     function getCurrencyConverter() public view returns (address) {
         return currencyConverter;
     }

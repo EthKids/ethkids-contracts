@@ -116,13 +116,16 @@ contract DonationCommunity is IDonationCommunity, RegistryAware, WhitelistedRole
     }
 
     function passToCharity(uint256 _amount, address payable _intermediary, string memory _ipfsHash) public onlyWhitelistAdmin {
-        //distribute accumulated interest amongst the communities
-        //registry.yieldVault().withdrawAllDai();
-
         require(_intermediary != address(0));
         charityVault.withdraw(_intermediary, _amount);
 
         emit LogPassToCharity(msg.sender, _intermediary, _amount, _ipfsHash);
+    }
+
+    function passToCharityWithInterest(uint256 _amount, address payable _intermediary, string memory _ipfsHash, address _aaveToken, address _aaveAToken) public onlyWhitelistAdmin {
+        passToCharity(_amount, _intermediary, _ipfsHash);
+        //distribute accumulated interest amongst the communities
+        registry.yieldVault().withdraw(_aaveToken, _aaveAToken, 0);
     }
 
     function name() public view returns (string memory) {

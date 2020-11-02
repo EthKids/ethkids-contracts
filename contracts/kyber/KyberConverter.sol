@@ -42,40 +42,49 @@ contract KyberConverter is Ownable {
     returns (uint, uint)
     {
         return kyberNetworkProxyContract.getExpectedRate(srcToken, destToken, srcQty);
-
     }
+
+    /**
+     * @dev Swap the user's ERC20 token to ETH
+     * Note: requires 'approve' srcToken first!
+     * @param srcToken source token contract address
+     * @param srcQty amount of source tokens
+     */
+    function executeSwapMyERCToETH(ERC20 srcToken, uint srcQty) public {
+        swapERCToETH(srcToken, srcQty, msg.sender);
+        emit Swap(msg.sender, srcToken, ETH_TOKEN_ADDRESS);
+    }
+
 
     /**
      * @dev Swap the user's ERC20 token to ETH and donates to the community.
      * Note: requires 'approve' srcToken first!
      * @param srcToken source token contract address
      * @param srcQty amount of source tokens
-     * @param maxDestAmount address to send swapped tokens to
      * @param community address of the donation community
      */
-    function executeSwapAndDonate(
-        ERC20 srcToken,
-        uint srcQty,
-        uint maxDestAmount,
-        IDonationCommunity community
-    ) public {
-        uint minConversionRate;
+    function executeSwapAndDonate(ERC20 srcToken, uint srcQty, IDonationCommunity community) public {
+        swapERCToETH(srcToken, srcQty, address(this));
+        // donate ETH to the community
+        community.donateDelegated.value(address(this).balance)(msg.sender);
+        emit Swap(msg.sender, srcToken, ETH_TOKEN_ADDRESS);
+    }
 
-        // Save prev src token balance
-        uint256 prevSrcBalance = srcToken.balanceOf(address(this));
+    function swapERCToETH(ERC20 srcToken, uint srcQty, address destAddress) internal {
+        uint minConversionRate;
 
         // Check that the token transferFrom has succeeded
         require(srcToken.transferFrom(msg.sender, address(this), srcQty));
-
-        // Mitigate ERC20 Approve front-running attack, by initially setting
-        // allowance to 0
-        require(srcToken.approve(address(kyberNetworkProxyContract), 0));
 
         // Set the spender's token allowance to tokenQty
         require(srcToken.approve(address(kyberNetworkProxyContract), srcQty));
 
         // Get the minimum conversion rate
         (minConversionRate,) = kyberNetworkProxyContract.getExpectedRate(srcToken, ETH_TOKEN_ADDRESS, srcQty);
+        // -5% max
+        minConversionRate = minConversionRate.mul(95).div(100);
+        // +5% max
+        uint maxDestAmount = srcQty.mul(minConversionRate).mul(105).div(100);
 
         // Swap the ERC20 token and send to 'this' contract address
         bytes memory hint;
@@ -83,21 +92,15 @@ contract KyberConverter is Ownable {
             srcToken,
             srcQty,
             ETH_TOKEN_ADDRESS,
-            address(this),
+            destAddress,
             maxDestAmount,
             minConversionRate,
             walletId,
             hint
         );
 
-        // Clean kyber to use _srcTokens on behalf of this contract
-        require(
-            srcToken.approve(address(kyberNetworkProxyContract), 0),
-            "Could not clear approval of kyber to use srcToken on behalf of this contract"
-        );
-
         // Return the change of src token
-        uint256 change = srcToken.balanceOf(address(this)).sub(prevSrcBalance);
+        uint256 change = srcToken.balanceOf(address(this));
 
         if (change > 0) {
             require(
@@ -105,13 +108,6 @@ contract KyberConverter is Ownable {
                 "Could not transfer change to sender"
             );
         }
-
-        // donate ETH to the community
-        community.donateDelegated.value(amount)(msg.sender);
-
-
-        // Log the event
-        emit Swap(msg.sender, srcToken, ETH_TOKEN_ADDRESS);
     }
 
     function executeSwapMyETHToERC(address _ercAddress) public payable returns (uint256) {

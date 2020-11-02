@@ -38,7 +38,7 @@ contract CharityVault is RegistryAware, Secondary {
      * @dev Receives some ETH and stores it.
      * @param _payee the donor's address.
      */
-    function deposit(address _payee) public onlyPrimary payable {
+    function deposit(address _payee) public payable {
         sumStats = sumStats.add(msg.value);
         emit LogDonationReceived(msg.value, _payee);
     }

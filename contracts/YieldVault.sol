@@ -13,6 +13,12 @@ contract YieldVault is YieldVaultInterface, RegistryAware, WhitelistedRole {
     RegistryInterface public registry;
     mapping(address => uint256) public withdrawalBacklog;
 
+    /**
+     * @dev Payable fallback to receive ETH while converting ERC
+     **/
+    function() external payable {
+    }
+
     function balance(address _atoken) public view returns (uint256) {
         return IAToken(_atoken).balanceOf(address(this));
     }
@@ -46,9 +52,22 @@ contract YieldVault is YieldVaultInterface, RegistryAware, WhitelistedRole {
             aToken.redeem(totalAmount);
             withdrawalBacklog[_atoken] = withdrawalBacklog[_atoken].add(totalAmount);
 
-            //distribute over all communities
+            ERC20 token = ERC20(_token);
+            //approve for swap
+            token.approve(address(currencyConverter()), totalAmount);
+            //swap
+            currencyConverter().executeSwapMyERCToETH(token, totalAmount);
+
+            //fund the BondingVault
+            uint _bondingAllocation = (address(this).balance).mul(10).div(100);
+            address payable bondingVaultPayable = address(uint160(address(getRegistry().getBondingVault())));
+            bondingVaultPayable.transfer(_bondingAllocation);
+
+            //distribute ETH all over communities
+            uint ethAmout = (address(this).balance).div(registry.communityCount());
             for (uint8 i = 0; i < registry.communityCount(); i++) {
-                ERC20(_token).transfer(registry.getCharityVaults()[i], _amount);
+                CharityVaultInterface charityVault = CharityVaultInterface(registry.getCharityVaults()[i]);
+                charityVault.deposit.value(ethAmout)(msg.sender);
             }
         }
     }
@@ -68,5 +87,9 @@ contract YieldVault is YieldVaultInterface, RegistryAware, WhitelistedRole {
 }
 
 interface CurrencyConverterInterface {
-    function executeSwapMyETHToERC() external payable returns (uint256);
+    function executeSwapMyERCToETH(ERC20 srcToken, uint srcQty) external;
+}
+
+interface CharityVaultInterface {
+    function deposit(address _payee) external payable;
 }
