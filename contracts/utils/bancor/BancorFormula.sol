@@ -1,35 +1,42 @@
-/**
- * FractionalExponents
- * Copied and modified from: 
- *  https://github.com/bancorprotocol/contracts/blob/master/solidity/contracts/converter/BancorFormula.sol#L289
- * Redistributed Under Apache License 2.0: 
- *  https://github.com/bancorprotocol/contracts/blob/master/LICENSE
- * Provided as an answer to:
- *  https://ethereum.stackexchange.com/questions/50527/is-there-any-efficient-way-to-compute-the-exponentiation-of-an-fractional-base-a
- */
-
 pragma solidity ^0.5.2;
 
-contract FractionalExponents {
+import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+
+contract BancorFormula {
+    using SafeMath for uint256;
+
+
+    string public version = '0.3';
 
     uint256 private constant ONE = 1;
     uint32 private constant MAX_WEIGHT = 1000000;
     uint8 private constant MIN_PRECISION = 32;
     uint8 private constant MAX_PRECISION = 127;
 
+    /**
+        Auto-generated via 'PrintIntScalingFactors.py'
+    */
     uint256 private constant FIXED_1 = 0x080000000000000000000000000000000;
     uint256 private constant FIXED_2 = 0x100000000000000000000000000000000;
     uint256 private constant MAX_NUM = 0x200000000000000000000000000000000;
 
+    /**
+        Auto-generated via 'PrintLn2ScalingFactors.py'
+    */
     uint256 private constant LN2_NUMERATOR = 0x3f80fe03f80fe03f80fe03f80fe03f8;
     uint256 private constant LN2_DENOMINATOR = 0x5b9de1d10bf4103d647b0955897ba80;
 
+    /**
+        Auto-generated via 'PrintFunctionOptimalLog.py' and 'PrintFunctionOptimalExp.py'
+    */
     uint256 private constant OPT_LOG_MAX_VAL = 0x15bf0a8b1457695355fb8ac404e7a79e3;
     uint256 private constant OPT_EXP_MAX_VAL = 0x800000000000000000000000000000000;
 
+    /**
+        Auto-generated via 'PrintFunctionConstructor.py'
+    */
     uint256[128] private maxExpArray;
-
-    function BancorFormula() public {
+    constructor() public {
         maxExpArray[32] = 0x1c35fedd14ffffffffffffffffffffffff;
         maxExpArray[33] = 0x1b0ce43b323fffffffffffffffffffffff;
         maxExpArray[34] = 0x19f0028ec1ffffffffffffffffffffffff;
@@ -128,14 +135,107 @@ contract FractionalExponents {
         maxExpArray[127] = 0x00857ddf0117efa215952912839f6473e6;
     }
 
+    /**
+        @dev given a token supply, connector balance, weight and a deposit amount (in the connector token),
+        calculates the return for a given conversion (in the main token)
+        Formula:
+        Return = _supply * ((1 + _depositAmount / _connectorBalance) ^ (_connectorWeight / 1000000) - 1)
+        @param _supply              token total supply
+        @param _connectorBalance    total connector balance
+        @param _connectorWeight     connector weight, represented in ppm, 1-1000000
+        @param _depositAmount       deposit amount, in connector token
+        @return purchase return amount
+    */
+    function calculatePurchaseReturn(uint256 _supply, uint256 _connectorBalance, uint32 _connectorWeight, uint256 _depositAmount) public view returns (uint256) {
+        // validate input
+        require(_supply > 0 && _connectorBalance > 0 && _connectorWeight > 0 && _connectorWeight <= MAX_WEIGHT);
 
+        // special case for 0 deposit amount
+        if (_depositAmount == 0)
+            return 0;
+
+        // special case if the weight = 100%
+        if (_connectorWeight == MAX_WEIGHT)
+            return _supply.mul(_depositAmount) / _connectorBalance;
+
+        uint256 result;
+        uint8 precision;
+        uint256 baseN = _depositAmount.add(_connectorBalance);
+        (result, precision) = power(baseN, _connectorBalance, _connectorWeight, MAX_WEIGHT);
+        uint256 temp = _supply.mul(result) >> precision;
+        return temp - _supply;
+    }
 
     /**
-        General Description:
+        @dev given a token supply, connector balance, weight and a sell amount (in the main token),
+        calculates the return for a given conversion (in the connector token)
+        Formula:
+        Return = _connectorBalance * (1 - (1 - _sellAmount / _supply) ^ (1 / (_connectorWeight / 1000000)))
+        @param _supply              token total supply
+        @param _connectorBalance    total connector
+        @param _connectorWeight     constant connector Weight, represented in ppm, 1-1000000
+        @param _sellAmount          sell amount, in the token itself
+        @return sale return amount
+    */
+    function calculateSaleReturn(uint256 _supply, uint256 _connectorBalance, uint32 _connectorWeight, uint256 _sellAmount) public view returns (uint256) {
+        // validate input
+        require(_supply > 0 && _connectorBalance > 0 && _connectorWeight > 0 && _connectorWeight <= MAX_WEIGHT && _sellAmount <= _supply);
+
+        // special case for 0 sell amount
+        if (_sellAmount == 0)
+            return 0;
+
+        // special case for selling the entire supply
+        if (_sellAmount == _supply)
+            return _connectorBalance;
+
+        // special case if the weight = 100%
+        if (_connectorWeight == MAX_WEIGHT)
+            return _connectorBalance.mul(_sellAmount) / _supply;
+
+        uint256 result;
+        uint8 precision;
+        uint256 baseD = _supply - _sellAmount;
+        (result, precision) = power(_supply, baseD, MAX_WEIGHT, _connectorWeight);
+        uint256 temp1 = _connectorBalance.mul(result);
+        uint256 temp2 = _connectorBalance << precision;
+        return (temp1 - temp2) / result;
+    }
+
+    /**
+        @dev given two connector balances/weights and a sell amount (in the first connector token),
+        calculates the return for a conversion from the first connector token to the second connector token (in the second connector token)
+        Formula:
+        Return = _toConnectorBalance * (1 - (_fromConnectorBalance / (_fromConnectorBalance + _amount)) ^ (_fromConnectorWeight / _toConnectorWeight))
+        @param _fromConnectorBalance    input connector balance
+        @param _fromConnectorWeight     input connector weight, represented in ppm, 1-1000000
+        @param _toConnectorBalance      output connector balance
+        @param _toConnectorWeight       output connector weight, represented in ppm, 1-1000000
+        @param _amount                  input connector amount
+        @return second connector amount
+    */
+    function calculateCrossConnectorReturn(uint256 _fromConnectorBalance, uint32 _fromConnectorWeight, uint256 _toConnectorBalance, uint32 _toConnectorWeight, uint256 _amount) public view returns (uint256) {
+        // validate input
+        require(_fromConnectorBalance > 0 && _fromConnectorWeight > 0 && _fromConnectorWeight <= MAX_WEIGHT && _toConnectorBalance > 0 && _toConnectorWeight > 0 && _toConnectorWeight <= MAX_WEIGHT);
+
+        // special case for equal weights
+        if (_fromConnectorWeight == _toConnectorWeight)
+            return _toConnectorBalance.mul(_amount) / _fromConnectorBalance.add(_amount);
+
+        uint256 result;
+        uint8 precision;
+        uint256 baseN = _fromConnectorBalance.add(_amount);
+        (result, precision) = power(baseN, _fromConnectorBalance, _fromConnectorWeight, _toConnectorWeight);
+        uint256 temp1 = _toConnectorBalance.mul(result);
+        uint256 temp2 = _toConnectorBalance << precision;
+        return (temp1 - temp2) / result;
+    }
+
+    /**
+        @dev General Description:
             Determine a value of precision.
             Calculate an integer approximation of (_baseN / _baseD) ^ (_expN / _expD) * 2 ^ precision.
             Return the result along with the precision used.
-
         Detailed Description:
             Instead of calculating "base ^ exp", we calculate "e ^ (log(base) * exp)".
             The value of "log(base)" is represented with an integer slightly smaller than "log(base) * 2 ^ precision".
@@ -147,8 +247,8 @@ contract FractionalExponents {
             This allows us to compute "base ^ exp" with maximum accuracy and without exceeding 256 bits in any of the intermediate computations.
             This functions assumes that "_expN < 2 ^ 256 / log(MAX_NUM - 1)", otherwise the multiplication should be replaced with a "safeMul".
     */
-    function power(uint256 _baseN, uint256 _baseD, uint32 _expN, uint32 _expD) public view returns (uint256, uint8) {
-        assert(_baseN < MAX_NUM);
+    function power(uint256 _baseN, uint256 _baseD, uint32 _expN, uint32 _expD) internal view returns (uint256, uint8) {
+        require(_baseN < MAX_NUM);
 
         uint256 baseLog;
         uint256 base = _baseN * FIXED_1 / _baseD;
@@ -170,7 +270,7 @@ contract FractionalExponents {
     }
 
     /**
-        Compute log(x / FIXED_1) * FIXED_1.
+        @dev computes log(x / FIXED_1) * FIXED_1.
         This functions assumes that "x >= FIXED_1", because the output would be negative otherwise.
     */
     function generalLog(uint256 x) internal pure returns (uint256) {
@@ -201,7 +301,7 @@ contract FractionalExponents {
     }
 
     /**
-        Compute the largest integer smaller than or equal to the binary logarithm of the input.
+        @dev computes the largest integer smaller than or equal to the binary logarithm of the input.
     */
     function floorLog2(uint256 _n) internal pure returns (uint8) {
         uint8 res = 0;
@@ -227,7 +327,7 @@ contract FractionalExponents {
     }
 
     /**
-        The global "maxExpArray" is sorted in descending order, and therefore the following statements are equivalent:
+        @dev the global "maxExpArray" is sorted in descending order, and therefore the following statements are equivalent:
         - This function finds the position of [the smallest value in "maxExpArray" larger than or equal to "x"]
         - This function finds the highest position of [a value in "maxExpArray" larger than or equal to "x"]
     */
@@ -248,16 +348,16 @@ contract FractionalExponents {
         if (maxExpArray[lo] >= _x)
             return lo;
 
-        assert(false);
+        require(false);
         return 0;
     }
 
     /**
-        This function can be auto-generated by the script 'PrintFunctionGeneralExp.py'.
-        It approximates "e ^ x" via maclaurin summation: "(x^0)/0! + (x^1)/1! + ... + (x^n)/n!".
-        It returns "e ^ (x / 2 ^ precision) * 2 ^ precision", that is, the result is upshifted for accuracy.
-        The global "maxExpArray" maps each "precision" to "((maximumExponent + 1) << (MAX_PRECISION - precision)) - 1".
-        The maximum permitted value for "x" is therefore given by "maxExpArray[precision] >> (MAX_PRECISION - precision)".
+        @dev this function can be auto-generated by the script 'PrintFunctionGeneralExp.py'.
+        it approximates "e ^ x" via maclaurin summation: "(x^0)/0! + (x^1)/1! + ... + (x^n)/n!".
+        it returns "e ^ (x / 2 ^ precision) * 2 ^ precision", that is, the result is upshifted for accuracy.
+        the global "maxExpArray" maps each "precision" to "((maximumExponent + 1) << (MAX_PRECISION - precision)) - 1".
+        the maximum permitted value for "x" is therefore given by "maxExpArray[precision] >> (MAX_PRECISION - precision)".
     */
     function generalExp(uint256 _x, uint8 _precision) internal pure returns (uint256) {
         uint256 xi = _x;
@@ -365,8 +465,15 @@ contract FractionalExponents {
     }
 
     /**
-        Return log(x / FIXED_1) * FIXED_1
+        @dev computes log(x / FIXED_1) * FIXED_1
         Input range: FIXED_1 <= x <= LOG_EXP_MAX_VAL - 1
+        Auto-generated via 'PrintFunctionOptimalLog.py'
+        Detailed description:
+        - Rewrite the input as a product of natural exponents and a single residual r, such that 1 < r < 2
+        - The natural logarithm of each (pre-calculated) exponent is the degree of the exponent
+        - The natural logarithm of r is calculated via Taylor series for log(1 + x), where x = r - 1
+        - The natural logarithm of the input is calculated by summing up the intermediate results above
+        - For example: log(250) = log(e^4 * e^1 * e^0.5 * 1.021692859) = 4 + 1 + 0.5 + log(1 + 0.021692859)
     */
     function optimalLog(uint256 x) internal pure returns (uint256) {
         uint256 res = 0;
@@ -377,45 +484,68 @@ contract FractionalExponents {
 
         if (x >= 0xd3094c70f034de4b96ff7d5b6f99fcd8) {res += 0x40000000000000000000000000000000;
             x = x * FIXED_1 / 0xd3094c70f034de4b96ff7d5b6f99fcd8;}
+        // add 1 / 2^1
         if (x >= 0xa45af1e1f40c333b3de1db4dd55f29a7) {res += 0x20000000000000000000000000000000;
             x = x * FIXED_1 / 0xa45af1e1f40c333b3de1db4dd55f29a7;}
+        // add 1 / 2^2
         if (x >= 0x910b022db7ae67ce76b441c27035c6a1) {res += 0x10000000000000000000000000000000;
             x = x * FIXED_1 / 0x910b022db7ae67ce76b441c27035c6a1;}
+        // add 1 / 2^3
         if (x >= 0x88415abbe9a76bead8d00cf112e4d4a8) {res += 0x08000000000000000000000000000000;
             x = x * FIXED_1 / 0x88415abbe9a76bead8d00cf112e4d4a8;}
+        // add 1 / 2^4
         if (x >= 0x84102b00893f64c705e841d5d4064bd3) {res += 0x04000000000000000000000000000000;
             x = x * FIXED_1 / 0x84102b00893f64c705e841d5d4064bd3;}
+        // add 1 / 2^5
         if (x >= 0x8204055aaef1c8bd5c3259f4822735a2) {res += 0x02000000000000000000000000000000;
             x = x * FIXED_1 / 0x8204055aaef1c8bd5c3259f4822735a2;}
+        // add 1 / 2^6
         if (x >= 0x810100ab00222d861931c15e39b44e99) {res += 0x01000000000000000000000000000000;
             x = x * FIXED_1 / 0x810100ab00222d861931c15e39b44e99;}
+        // add 1 / 2^7
         if (x >= 0x808040155aabbbe9451521693554f733) {res += 0x00800000000000000000000000000000;
             x = x * FIXED_1 / 0x808040155aabbbe9451521693554f733;}
+        // add 1 / 2^8
 
         z = y = x - FIXED_1;
         w = y * y / FIXED_1;
         res += z * (0x100000000000000000000000000000000 - y) / 0x100000000000000000000000000000000;
         z = z * w / FIXED_1;
+        // add y^01 / 01 - y^02 / 02
         res += z * (0x0aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa - y) / 0x200000000000000000000000000000000;
         z = z * w / FIXED_1;
+        // add y^03 / 03 - y^04 / 04
         res += z * (0x099999999999999999999999999999999 - y) / 0x300000000000000000000000000000000;
         z = z * w / FIXED_1;
+        // add y^05 / 05 - y^06 / 06
         res += z * (0x092492492492492492492492492492492 - y) / 0x400000000000000000000000000000000;
         z = z * w / FIXED_1;
+        // add y^07 / 07 - y^08 / 08
         res += z * (0x08e38e38e38e38e38e38e38e38e38e38e - y) / 0x500000000000000000000000000000000;
         z = z * w / FIXED_1;
+        // add y^09 / 09 - y^10 / 10
         res += z * (0x08ba2e8ba2e8ba2e8ba2e8ba2e8ba2e8b - y) / 0x600000000000000000000000000000000;
         z = z * w / FIXED_1;
+        // add y^11 / 11 - y^12 / 12
         res += z * (0x089d89d89d89d89d89d89d89d89d89d89 - y) / 0x700000000000000000000000000000000;
         z = z * w / FIXED_1;
+        // add y^13 / 13 - y^14 / 14
         res += z * (0x088888888888888888888888888888888 - y) / 0x800000000000000000000000000000000;
+        // add y^15 / 15 - y^16 / 16
 
         return res;
     }
 
     /**
-        Return e ^ (x / FIXED_1) * FIXED_1
-        Input range: 0 <= x <= OPT_EXP_MAX_VAL - 1
+        @dev computes e ^ (x / FIXED_1) * FIXED_1
+        input range: 0 <= x <= OPT_EXP_MAX_VAL - 1
+        auto-generated via 'PrintFunctionOptimalExp.py'
+        Detailed description:
+        - Rewrite the input as a sum of binary exponents and a single residual r, as small as possible
+        - The exponentiation of each binary exponent is given (pre-calculated)
+        - The exponentiation of r is calculated via Taylor series for e^x, where x = r
+        - The exponentiation of the input is calculated by multiplying the intermediate results above
+        - For example: e^5.521692859 = e^(4 + 1 + 0.5 + 0.021692859) = e^4 * e^1 * e^0.5 * e^0.021692859
     */
     function optimalExp(uint256 x) internal pure returns (uint256) {
         uint256 res = 0;
@@ -424,6 +554,7 @@ contract FractionalExponents {
         uint256 z;
 
         z = y = x % 0x10000000000000000000000000000000;
+        // get the input modulo 2^(-3)
         z = z * y / FIXED_1;
         res += z * 0x10e1b3be415a0000;
         // add y^02 * (20! / 02!)
@@ -485,12 +616,19 @@ contract FractionalExponents {
         // divide by 20! and then add y^1 / 1! + y^0 / 0!
 
         if ((x & 0x010000000000000000000000000000000) != 0) res = res * 0x1c3d6a24ed82218787d624d3e5eba95f9 / 0x18ebef9eac820ae8682b9793ac6d1e776;
+        // multiply by e^2^(-3)
         if ((x & 0x020000000000000000000000000000000) != 0) res = res * 0x18ebef9eac820ae8682b9793ac6d1e778 / 0x1368b2fc6f9609fe7aceb46aa619baed4;
+        // multiply by e^2^(-2)
         if ((x & 0x040000000000000000000000000000000) != 0) res = res * 0x1368b2fc6f9609fe7aceb46aa619baed5 / 0x0bc5ab1b16779be3575bd8f0520a9f21f;
+        // multiply by e^2^(-1)
         if ((x & 0x080000000000000000000000000000000) != 0) res = res * 0x0bc5ab1b16779be3575bd8f0520a9f21e / 0x0454aaa8efe072e7f6ddbab84b40a55c9;
+        // multiply by e^2^(+0)
         if ((x & 0x100000000000000000000000000000000) != 0) res = res * 0x0454aaa8efe072e7f6ddbab84b40a55c5 / 0x00960aadc109e7a3bf4578099615711ea;
+        // multiply by e^2^(+1)
         if ((x & 0x200000000000000000000000000000000) != 0) res = res * 0x00960aadc109e7a3bf4578099615711d7 / 0x0002bf84208204f5977f9a8cf01fdce3d;
+        // multiply by e^2^(+2)
         if ((x & 0x400000000000000000000000000000000) != 0) res = res * 0x0002bf84208204f5977f9a8cf01fdc307 / 0x0000003c6ab775dd0b95b4cbee7e65d11;
+        // multiply by e^2^(+3)
 
         return res;
     }

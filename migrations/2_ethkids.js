@@ -1,4 +1,4 @@
-var ExponentialDeflation = artifacts.require("ExponentialDeflation");
+var BancorFormula = artifacts.require("BancorFormula");
 var BondingVault = artifacts.require("BondingVault");
 var YieldVault = artifacts.require("YieldVault");
 var DonationCommunity = artifacts.require("DonationCommunity");
@@ -7,8 +7,8 @@ var KyberConverter = artifacts.require("KyberConverter");
 var ERC20Mintable = artifacts.require("ERC20Mintable");
 
 const empty_address = '0x0000000000000000000000000000000000000000';
-const initialTokenMint = web3.utils.toWei("1", "ether"); //1 CHANCE, required for initial 'sell price' calculation
-const initialValueFunding = web3.utils.toWei("100", "finney"); //0.1 ETH, required for initial liquidation calculation
+const initialTokenMint = web3.utils.toWei("1000000", "ether"); //1.000.000 CHANCE, required for initial 'sell price' calculation
+const initialValueFunding = web3.utils.toWei("10", "finney"); //0.01 ETH, required for initial liquidation calculation
 const tokenName = 'Chance';
 const tokenSym = 'CHANCE';
 
@@ -53,9 +53,9 @@ module.exports = async function (deployer, network, accounts) {
     let {kyberNetworkAddress, feeWallet} = getKyberForNetwork(network, accounts)
 
     console.log(`  Deploying bonding vault...`);
-    await deployer.deploy(ExponentialDeflation);
-    const bondingFormulaInstance = await ExponentialDeflation.deployed();
-    console.log('EthKids, ExponentialDeflation: NEW ' + bondingFormulaInstance.address);
+    await deployer.deploy(BancorFormula);
+    const bondingFormulaInstance = await BancorFormula.deployed();
+    console.log('EthKids, BancorFormula: NEW ' + bondingFormulaInstance.address);
 
     await deployer.deploy(BondingVault, tokenName, tokenSym, bondingFormulaInstance.address,
         initialTokenMint, {value: initialValueFunding});

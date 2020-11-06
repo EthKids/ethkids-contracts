@@ -17,6 +17,8 @@ import "./RegistryAware.sol";
 contract BondingVault is BondingVaultInterface, RegistryAware, WhitelistedRole {
     using SafeMath for uint256;
 
+    uint32 private constant CONNECTOR_WEIGHT = 400000; //40%
+
     RegistryInterface public registry;
     EthKidsToken public token;
 
@@ -62,7 +64,7 @@ contract BondingVault is BondingVaultInterface, RegistryAware, WhitelistedRole {
     * Can be called by a community only (i.e. via a 'donation' action)
     */
     function fundWithReward(address payable _donor) public payable onlyWhitelisted {
-        uint256 _tokenAmount = calculateReward(msg.value, _donor);
+        uint256 _tokenAmount = calculateReward(msg.value);
 
         token.mint(_donor, _tokenAmount);
         emit LogEthReceived(msg.value, _donor);
@@ -73,7 +75,7 @@ contract BondingVault is BondingVaultInterface, RegistryAware, WhitelistedRole {
     * @dev Burn token and receive ETH back
     */
     function sell(uint256 _amount) public {
-        uint256 amountOfEth = calculateReturn(_amount, msg.sender);
+        uint256 amountOfEth = calculateReturn(_amount);
         require(address(this).balance > amountOfEth, 'Insufficient funds in the vault');
         token.burnFrom(msg.sender, _amount);
 
@@ -92,24 +94,17 @@ contract BondingVault is BondingVaultInterface, RegistryAware, WhitelistedRole {
         emit LogEthSent(address(this).balance, _operator);
     }
 
-    function calculateReward(uint256 _ethAmount, address payable _donor) public
+    function calculateReward(uint256 _ethAmount) public
     view returns (uint256 tokenAmount) {
         uint256 _tokenSupply = token.totalSupply();
-        uint256 _tokenBalance = token.balanceOf(_donor);
-        if (_tokenBalance == 0) {
-            //first donation, offer best market price
-            _tokenBalance = token.smallestHolding();
-        }
-        return bondingCurveFormula.calculatePurchaseReturn(_tokenSupply, _tokenBalance, address(this).balance.sub(_ethAmount), _ethAmount);
+        return bondingCurveFormula.calculatePurchaseReturn(_tokenSupply, address(this).balance, CONNECTOR_WEIGHT, _ethAmount);
     }
 
-    function calculateReturn(uint256 _tokenAmount, address payable _donor) public
+    function calculateReturn(uint256 _tokenAmount) public
     view returns (uint256 returnEth) {
-        uint256 _tokenBalance = token.balanceOf(_donor);
-        require(_tokenAmount > 0 && _tokenBalance >= _tokenAmount, "Amount needs to be > 0 and tokenBalance >= amount to sell");
-
         uint256 _tokenSupply = token.totalSupply();
-        return bondingCurveFormula.calculateSaleReturn(_tokenSupply, _tokenBalance, address(this).balance, _tokenAmount);
+        require(_tokenAmount > 0 && _tokenSupply >= _tokenAmount, "Amount needs to be > 0 and tokenBalance >= amount to sell");
+        return bondingCurveFormula.calculateSaleReturn(_tokenSupply, address(this).balance, CONNECTOR_WEIGHT, _tokenAmount);
     }
 
     function getEthKidsToken() public view returns (address) {
@@ -120,8 +115,8 @@ contract BondingVault is BondingVaultInterface, RegistryAware, WhitelistedRole {
 
 interface BondingCurveFormula {
 
-    function calculatePurchaseReturn(uint256 _supply, uint256 _currentHoldings, uint256 _reserveBalance, uint256 _depositAmount) external view returns (uint256);
+    function calculatePurchaseReturn(uint256 _supply, uint256 _connectorBalance, uint32 _connectorWeight, uint256 _depositAmount) external view returns (uint256);
 
-    function calculateSaleReturn(uint256 _supply, uint256 _currentHoldings, uint256 _reserveBalance, uint256 _sellAmount) external view returns (uint256);
+    function calculateSaleReturn(uint256 _supply, uint256 _connectorBalance, uint32 _connectorWeight, uint256 _sellAmount) external view returns (uint256);
 
 }

@@ -6,9 +6,9 @@ interface BondingVaultInterface {
 
     function getEthKidsToken() external view returns (address);
 
-    function calculateReward(uint256 _ethAmount, address payable _donor) external view returns (uint256 _tokenAmount);
+    function calculateReward(uint256 _ethAmount) external view returns (uint256 _tokenAmount);
 
-    function calculateReturn(uint256 _tokenAmount, address payable _donor) external view returns (uint256 _returnEth);
+    function calculateReturn(uint256 _tokenAmount) external view returns (uint256 _returnEth);
 
     function sweepVault(address payable _operator) external;
 
