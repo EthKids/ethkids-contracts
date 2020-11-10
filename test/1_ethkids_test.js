@@ -1,6 +1,6 @@
 const truffleAssert = require('truffle-assertions');
 
-var ExponentialDeflation = artifacts.require("ExponentialDeflation");
+var BancorFormula = artifacts.require("BancorFormula");
 var BondingVault = artifacts.require("BondingVault");
 var CharityVault = artifacts.require("CharityVault");
 var DonationCommunity = artifacts.require("DonationCommunity");
@@ -45,11 +45,11 @@ contract('EthKids', async (accounts) => {
 
         registry = await EthKidsRegistry.deployed();
 
-        assert.strictEqual((await registry.communityCount.call()).toString(), "2");
+        assert.strictEqual((await registry.communityCount.call()).toString(), "3");
 
         bondingVault = await BondingVault.at(await registry.bondingVault.call());
 
-        formula = await ExponentialDeflation.at(await bondingVault.bondingCurveFormula.call());
+        formula = await BancorFormula.at(await bondingVault.bondingCurveFormula.call());
 
         token = await EthKidsToken.at(await bondingVault.getEthKidsToken());
 
@@ -61,7 +61,7 @@ contract('EthKids', async (accounts) => {
 
         //replace the converter with the mock that uses another ERC as 'stable'
         stableToken = await ERC20Mintable.new();
-        currencyConverter = await KyberConverterMock.new(empty_address, empty_address, stableToken.address);
+        currencyConverter = await KyberConverterMock.new(empty_address, empty_address);
         //mint 100 directly to converter for liquidity
         await stableToken.mint(currencyConverter.address, web3.utils.toWei('100', 'ether'));
         await registry.registerCurrencyConverter(currencyConverter.address);
@@ -80,7 +80,7 @@ contract('EthKids', async (accounts) => {
             readableETH((await community.myReturn(await token.balanceOf(DONOR, {from: DONOR})))));
 
         //charity fund
-        let charityAfter = (await stableToken.balanceOf(charityVault.address)).toString();
+        let charityAfter = (await web3.eth.getBalance(charityVault.address)).toString();
         assert.strictEqual(charityAfter, web3.utils.toWei("90", "finney"));
         //global stats
         let globalStats = (await charityVault.sumStats.call()).toString();
@@ -89,8 +89,8 @@ contract('EthKids', async (accounts) => {
 
         //bonding curve fund
         let bondingCurveAfter = (await web3.eth.getBalance(bondingVault.address)).toString();
-        //100 finney there initially
-        assert.strictEqual(bondingCurveAfter, web3.utils.toWei("110", "finney"));
+        //10 finney there initially
+        assert.strictEqual(bondingCurveAfter, web3.utils.toWei("20", "finney"));
     })
 
     it("should sum up on second donation", async () => {
@@ -108,7 +108,7 @@ contract('EthKids', async (accounts) => {
             readableETH((await community.myReturn(await token.balanceOf(DONOR2), {from: DONOR2}))));
 
         //charity fund
-        let charityAfter = (await stableToken.balanceOf(charityVault.address)).toString();
+        let charityAfter = (await web3.eth.getBalance(charityVault.address)).toString();
         assert.strictEqual(charityAfter, web3.utils.toWei("270", "finney"));
         //global stats
         let globalStats = (await charityVault.sumStats.call()).toString();
@@ -117,7 +117,7 @@ contract('EthKids', async (accounts) => {
 
         //bonding curve fund
         let bondingCurveAfter = (await web3.eth.getBalance(bondingVault.address)).toString();
-        assert.strictEqual(bondingCurveAfter, web3.utils.toWei("130", "finney")); // + 20 finney
+        assert.strictEqual(bondingCurveAfter, web3.utils.toWei("40", "finney")); // + 20 finney
     })
 
     it("should sum up on 3rd donation", async () => {
@@ -135,9 +135,9 @@ contract('EthKids', async (accounts) => {
     })
 
     it("should calculate return on sell", async () => {
-        let testTokenAmount = web3.utils.toWei("1", "finney");
-        console.log("DONOR balance:" + readableETH(await token.balanceOf(DONOR)));
-        console.log("DONOR2 balance:" + readableETH(await token.balanceOf(DONOR2)));
+        let testTokenAmount = web3.utils.toWei("10000", "ether");
+        console.log("DONOR balance:" + readableTokens(await token.balanceOf(DONOR)));
+        console.log("DONOR2 balance:" + readableTokens(await token.balanceOf(DONOR2)));
         let returnSmallDonor = (await community.myReturn(testTokenAmount, {from: DONOR}));
         let returnBigDonor = (await community.myReturn(testTokenAmount, {from: DONOR2}));
 
@@ -152,8 +152,8 @@ contract('EthKids', async (accounts) => {
         let donorBalanceBefore = Number(await web3.eth.getBalance(DONOR2));
         let donorTokenBalanceBefore = Number(await token.balanceOf(DONOR2));
         let bondingVaultBalanceBefore = Number(await web3.eth.getBalance(bondingVault.address));
-        let returnBeforeSell = (await community.myReturn(web3.utils.toWei("150", "finney"), {from: DONOR2}));
-        await bondingVault.sell(web3.utils.toWei("150", "finney"), {from: DONOR2});//0.15 CHANCE
+        let returnBeforeSell = (await community.myReturn(web3.utils.toWei("100000", "ether"), {from: DONOR2}));
+        await bondingVault.sell(web3.utils.toWei("100000", "ether"), {from: DONOR2});//100 000 CHANCE
 
         //personal ETH balance increased
         assert.isTrue(donorBalanceBefore < Number(await web3.eth.getBalance(DONOR2)));
@@ -162,25 +162,25 @@ contract('EthKids', async (accounts) => {
         //personal CHANCE balance decreased
         assert.isTrue(donorTokenBalanceBefore > Number(await token.balanceOf(DONOR2)));
 
-        let returnAfterSell = (await community.myReturn(web3.utils.toWei("150", "finney"), {from: DONOR2}));
-        console.log("(5) My return before I sell: " + readableETH(returnBeforeSell));
+        let returnAfterSell = (await community.myReturn(web3.utils.toWei("100000", "ether"), {from: DONOR2}));
+        console.log("(5) My return before I sold: " + readableETH(returnBeforeSell));
         console.log("(5) My return after I sold: " + readableETH(returnAfterSell));
     })
 
     it("should be able to pass to charity", async () => {
-        let charityFundBefore = Number(await stableToken.balanceOf(charityVault.address));
-        let intermediaryBalanceBefore = Number(await stableToken.balanceOf(CHARITY_INTERMEDIARY));
+        let charityFundBefore = Number(await web3.eth.getBalance(charityVault.address));
+        let intermediaryBalanceBefore = Number(await web3.eth.getBalance(CHARITY_INTERMEDIARY));
 
-        let tx = await community.passToCharity(web3.utils.toWei("100", "finney"), CHARITY_INTERMEDIARY, ipfsMessage);
+        let tx = await community.passToCharity(web3.utils.toWei("40", "finney"), CHARITY_INTERMEDIARY, ipfsMessage);
 
-        assert.strictEqual(Number(await stableToken.balanceOf(charityVault.address)) + Number(web3.utils.toWei("100", "finney")),
+        assert.strictEqual(Number(await web3.eth.getBalance(charityVault.address)) + Number(web3.utils.toWei("40", "finney")),
             charityFundBefore);
-        assert.strictEqual(Number(await stableToken.balanceOf(CHARITY_INTERMEDIARY)) - Number(web3.utils.toWei("100", "finney")),
+        assert.strictEqual(Number(await web3.eth.getBalance(CHARITY_INTERMEDIARY)) - Number(web3.utils.toWei("40", "finney")),
             intermediaryBalanceBefore);
 
         truffleAssert.eventEmitted(tx, 'LogPassToCharity', (ev) => {
             return ev.by === OWNER && ev.intermediary === CHARITY_INTERMEDIARY
-                && ev.amount.toString() === web3.utils.toWei("100", "finney") && ev.ipfsHash === ipfsMessage;
+                && ev.amount.toString() === web3.utils.toWei("40", "finney") && ev.ipfsHash === ipfsMessage;
         }, 'LogPassToCharity should be emitted with correct parameters');
 
     })
@@ -191,7 +191,7 @@ contract('EthKids', async (accounts) => {
         await bondingVault.sell(await token.balanceOf(DONOR2), {from: DONOR2});
         await bondingVault.sell(await token.balanceOf(DONOR3), {from: DONOR3});
 
-        assert.strictEqual((await token.totalSupply()).toString(), "1000000000000000000"); //1 CHANCE, initial one
+        assert.strictEqual((await token.totalSupply()).toString(), web3.utils.toWei("1000000", "ether")); //1 MM CHANCE, initial one
         console.log("Vault after all sells: " + readableETH(await web3.eth.getBalance(bondingVault.address)));
 
         //bad guy can't

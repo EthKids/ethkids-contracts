@@ -27,9 +27,9 @@ contract('BancorFormula', async (accounts) => {
         let outputSupply = '';
         let outputPrice = '';
         for (let i = 1; i < 100; i++) {
-            console.log('MINTED: ' + readableTokens(tokenSupply));
-            console.log('VAULT ETH: ' + readableTokens(vaultBalance));
-            console.log('BUYING ' + readableTokens(buying.toString()));
+            //console.log('MINTED: ' + readableTokens(tokenSupply));
+            //console.log('VAULT ETH: ' + readableTokens(vaultBalance));
+            //console.log('BUYING ' + readableTokens(buying.toString()));
             //console.log(Number(price).toFixed(25));
             buying = await formula.calculatePurchaseReturn(
                 tokenSupply,
@@ -43,8 +43,8 @@ contract('BancorFormula', async (accounts) => {
             outputSupply = outputSupply + readableTokens(tokenSupply) + ', ';
             outputPrice = outputPrice + Number(price).toFixed(25) + ', ';
         }
-        //console.log('Supply ' + outputSupply);
-        //console.log('Price ' + outputPrice);
+        console.log('Supply ' + outputSupply);
+        console.log('Price ' + outputPrice);
     })
 
     /*it("can calculate ETH return for personal holdings 1%-100%", async () => {

@@ -83,7 +83,7 @@ module.exports = async function (deployer, network, accounts) {
 
 
     ///////////////
-    // This is to run by a community leader
+    // This is to run by a community leader(s)
     console.log(`  Deploying a community ChanceBY...`);
     let communityInstance1 = await deployCommunity(deployer, 'ChanceBY', registryInstance.address);
     console.log('EthKids, DonationCommunity: NEW ' + communityInstance1.address);
